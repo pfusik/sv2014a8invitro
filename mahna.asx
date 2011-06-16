@@ -1,0 +1,332 @@
+samples	equ	$4000
+SAMPLES_PER_BANK	equ	16384
+
+smp_ptr	equ	$80
+smp_bank	equ	$82
+colors_ptr	equ	$84
+gfx_ptr	equ	$86
+scr_ptr	equ	$88
+
+	org	$8f8
+scr_galy
+	ins	'dasgaly.mic',0,400
+scr_geba
+	ins	'dasgeba.mic',0,1400
+	org	$1000
+scr_oczka1
+	ins	'dasoczka.mic',0,800
+scr_oczka2
+	ins	'dasoczka.mic',960,800
+scr_oczka3
+	ins	'dasoczka.mic',2*960,800
+scr_oczka4
+	ins	'dasoczka.mic',3*960,800
+scr_cmok
+	ins	'dascmok.mic',0,880
+galy_ptrs
+	dta	a(scr_omen+126*40,scr_omen+126*40,scr_omen+126*40,scr_galy,scr_galy)
+oczka_ptrs
+	dta	a(scr_babka+80*40,scr_oczka1,scr_oczka2,scr_oczka3,scr_oczka4)
+patrzalki
+:32	dta	2
+	dta	4,4,4,4,6,6,6,6,6,6,4,4,4,4
+:20	dta	2
+	dta	8,8,8,8,0,0,0,0,0,0,0,8,8,8,8
+:32	dta	2
+
+	org	$2100
+scr_omen
+	ins	'dasomen.mic'
+colors_omen	equ	*-4
+dl_omen
+	dta	$70,$70,$70,$4e,a(scr_omen)
+:95	dta	$e
+	dta	$4e,a(scr_omen+$f00)
+:29	dta	$e
+	dta	$4e,a(scr_omen+126*40)
+galy_ptr	equ	*-2
+:9	dta	$e
+	dta	$4e,a(scr_omen+136*40)
+:55	dta	$e
+	dta	$41,a(dl_omen)
+
+	org	$a100
+scr_babka
+;	ins	'dasbabka.mic'
+; patch one red pixel on the cheek to compensate for inaccurate color changes (blue -> red)
+	ins	'dasbabka.mic',0,$f34
+	dta	$40
+	ins	'dasbabka.mic',$f35
+colors_babka	equ	*-4
+dl_babka
+	dta	$70,$70,$70,$4e,a(scr_babka)
+:79	dta	$e
+	dta	$4e,a(scr_babka+80*40)
+oczka_ptr	equ	*-2
+:15	dta	$e
+	dta	$4e,a(scr_babka+$f00)
+:95	dta	$e
+	dta	$41,a(dl_babka)
+
+	org	^31
+	dta	$e3
+	org	samples
+	ins	'mahna.smp',0,SAMPLES_PER_BANK
+
+	org	^31
+	dta	$e7
+	org	samples
+	ins	'mahna.smp',SAMPLES_PER_BANK,SAMPLES_PER_BANK
+
+	org	^31
+	dta	$eb
+	org	samples
+	ins	'mahna.smp',2*SAMPLES_PER_BANK,SAMPLES_PER_BANK
+
+	org	^31
+	dta	$ef
+	org	samples
+	ins	'mahna.smp',3*SAMPLES_PER_BANK,SAMPLES_PER_BANK
+
+	org	^31
+	dta	$fe
+	org	samples
+	ins	'mahna.smp',4*SAMPLES_PER_BANK
+FRAMES_PER_MAIN	equ	[*-samples]/156
+
+colors_niebo
+:16	dta	$86	; ramka
+:12	dta	$86
+:9	dta	$88
+:7	dta	$8a
+:4	dta	$8c
+:4	dta	$8e
+:12	dta	$86
+:49	dta	$34
+:4	dta	$34	; zapas
+
+main
+	sei:inc	^4e
+	lda:rne	^4b
+	ldx	#29
+	sta:rpl	^00,x-
+	mva	#$22	^40
+
+	mwa	#dl_omen	^42
+	mwa	#colors_omen	colors_ptr
+	jsr	fade_in
+	ldx	#200
+	jsr	wait
+
+loop
+	jsr	start_sample
+; mahna mahna
+	lda	#74*78/256
+	jsr	play_sample
+; tu tu tu turu
+	jsr	show_babka
+	lda	#268*78/256
+	jsr	play_sample
+
+; mahna mahna
+	jsr	show_omen
+	lda	#343*78/256-64
+	jsr	play_sample
+; tut turut tu
+	jsr	show_babka
+	lda	#529*78/256-64
+	jsr	play_sample
+
+; mahna mahna
+	jsr	show_omen
+	lda	#600*78/256-128
+	jsr	play_sample
+; tut turut tuturu tuturu...
+	jsr	show_babka
+	lda	#1125*78/256-128
+	jsr	play_sample
+
+;	jmp	loop
+
+	mva	<^19	reg_niebo
+	mwa	#dl_bank	^42
+	mva	#0	^16
+	sta	^17
+	sta	^18
+	mwa	#colors_bank	colors_ptr
+	jsr	fade_in
+	ldx	#100
+	jsr	wait
+
+	jsr	start_sample
+; mahna mahna
+	jsr	show_zbir
+	lda	#74*78/256
+	jsr	play_sample
+; tu tu tu turu
+	jsr	show_panienki
+	lda	#268*78/256
+	jsr	play_sample
+
+	jsr	show_omen
+	jmp	loop
+
+fade_in
+	ldx	#$f1
+fade_in_1
+	jsr	fade
+	inx
+	cpx	#1
+	bne	fade_in_1
+	rts
+
+fade
+	lda:rne	^4b
+	sta:sta	^4a
+	ldy	#3
+fade_1
+	txa
+	add	(colors_ptr),y
+	eor	(colors_ptr),y
+	cmp	#$10
+	eor	(colors_ptr),y
+	scc:lda	#0
+	sta	^16-1,y
+	dey
+	bne	fade_1
+	rts
+
+wait
+	lda:req	^4b
+	lda:rne	^4b
+	dex
+	bne	wait
+	rts
+
+show_omen
+	mwa	#dl_omen	^42
+	mva	colors_omen+1	^16
+	mva	colors_omen+2	^17
+	mva	colors_omen+3	^18
+	mva	<^19	reg_niebo
+	rts
+
+show_babka
+	mwa	#dl_babka	^42
+	mva	colors_babka+1	^16
+	mva	colors_babka+3	^18
+	mva	<^17	reg_niebo
+	lda:rne	^4b
+	rts
+
+start_sample
+	mva	#0	smp_bank
+	mva	sample_banks	^31
+	mwa	#samples	smp_ptr
+	mva	#{bpl}	play_sample_bpl
+	rts
+
+play_sample
+	add	#$40
+	tax
+play_sample_2lines
+	lda	(smp_ptr),0
+:4	lsr	@
+	ora	#$f0
+	ldy	^4b
+	sta	^4a
+	sta	$d211
+	sta	^21
+	mva	colors_niebo,y	^19
+reg_niebo	equ	*-2
+	lda	(smp_ptr),0
+	ora	#$f0
+	inc	smp_ptr
+	bne	play_sample_same
+	inc	smp_ptr+1
+play_sample_bpl
+	bpl	play_sample_same
+	pha
+	sta	^4a
+	lsr	smp_ptr+1
+	txa
+	sbc	#$3f	-
+	tax
+	inc:ldy	smp_bank
+	sta	^4a
+	mva	sample_banks,y	^31
+	cpy	#4
+	scc:mva	#{bne}	play_sample_bpl
+	pla
+play_sample_same
+	sta	^4a
+	sta	$d211
+	sta	^21
+	lda	^4b
+	bne	play_sample_2lines
+
+	ldy	smp_ptr+1
+	lda:tay	patrzalki-$40,y
+	mwa	galy_ptrs,y	galy_ptr
+	mwa	oczka_ptrs,y	oczka_ptr
+
+	cpx	smp_ptr+1
+	bne	play_sample_2lines
+	rts
+	
+sample_banks
+	dta	$e2,$e6,$ea,$ee,$fe
+
+; ------------
+
+show_zbir
+	lda	<scr_zbir
+	ldx	>scr_zbir
+	ldy	#15
+	jmp	show_klient
+
+show_panienki
+	lda	<scr_panienka
+	ldx	>scr_panienka
+	ldy	#2
+	jsr	show_klient
+	lda	<scr_panienka
+	ldx	>scr_panienka
+	ldy	#28
+	jmp	show_klient
+
+show_klient
+	sta	gfx_ptr
+	stx	gfx_ptr+1
+	sty	scr_ptr
+	mva	>scr_drzwi	scr_ptr+1
+	ldx	#94
+show_klient_line
+	ldy	#6
+	mva:rpl	(gfx_ptr),y	(scr_ptr),y-
+	lda	#7
+	add:sta	gfx_ptr
+	scc:inc	gfx_ptr+1
+	lda	#40
+	add:sta	scr_ptr
+	scc:inc	scr_ptr+1
+	dex
+	bne	show_klient_line
+	rts
+
+scr_panienka
+	ins	'bankowcy.bin',0,7*94
+scr_zbir
+	ins	'bankowcy.bin',3*7*94,7*94
+
+	org	$c000
+scr_drzwi
+	ins	'bankdrzwi.mic'
+colors_bank	equ	*-4
+dl_bank
+:9	dta	$70
+	dta	$4e,a(scr_drzwi)
+:95	dta	$e
+	dta	$41,a(dl_bank)
+
+	run	main
