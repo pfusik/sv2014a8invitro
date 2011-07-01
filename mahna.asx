@@ -4,8 +4,8 @@ SAMPLES_PER_BANK	equ	16384
 smp_ptr	equ	$80
 smp_bank	equ	$82
 colors_ptr	equ	$84
-gfx_ptr	equ	$86
-scr_ptr	equ	$88
+lines	equ	$86
+first	equ	$87
 
 	org	$8f8
 scr_galy
@@ -128,6 +128,7 @@ main
 	jsr	fade_in
 	ldx	#200
 	jsr	wait
+	mva	#1	first
 
 loop
 	jsr	start_sample
@@ -137,23 +138,29 @@ loop
 
 	mva	<^19	reg_niebo
 	mwa	#dl_bank	^42
+	lsr	first
+	bcc	was_bank
 	mva	#0	^16
 	sta	^17
 	sta	^18
+
+	lda	<col_bank
+	ldx	#0
+	ldy	#40-1
+	jsr	show_cols
+
 	mwa	#colors_bank	colors_ptr
 	jsr	fade_in
 	ldx	#100
 	jsr	wait
-
+was_bank
+	mva	colors_bank+1	^16
+	mva	colors_bank+2	^17
+	mva	colors_bank+3	^18
 	jsr	start_sample
-; mahna mahna
-	jsr	show_zbir
-	ldx	#74*78/256+64
-	jsr:rne	play_sample_frame
-; tu tu tu turu
-	jsr	show_panienki
-	ldx	#268*78/256+64
-	jsr:rne	play_sample_frame
+:2	jsr	show_guy_babes_default
+	lda	#115
+	jsr	show_guy_babes
 
 	jmp	loop
 
@@ -332,54 +339,174 @@ sample_banks
 
 ; ------------
 
-show_zbir
-	lda	<scr_zbir
-	ldx	>scr_zbir
-	ldy	#15
-	jmp	show_klient
-
-show_panienki
-	lda	<scr_panienka
-	ldx	>scr_panienka
-	ldy	#2
-	jsr	show_klient
-	lda	<scr_panienka
-	ldx	>scr_panienka
-	ldy	#28
-	jmp	show_klient
-
-show_klient
-	sta	gfx_ptr
-	stx	gfx_ptr+1
-	sty	scr_ptr
-	mva	>scr_drzwi	scr_ptr+1
-	ldx	#94
-show_klient_line
-	ldy	#6
-	mva:rpl	(gfx_ptr),y	(scr_ptr),y-
-	lda	#7
-	add:sta	gfx_ptr
-	scc:inc	gfx_ptr+1
-	lda	#40
-	add:sta	scr_ptr
-	scc:inc	scr_ptr+1
-	dex
-	bne	show_klient_line
+show_guy_babes_default
+	lda	#20
+show_guy_babes
+	pha
+; guy
+	lda	<col_guy1
+	ldx	#15
+	ldy	#8-1
+	jsr	show_cols_frame
+	lda	<col_guy2
+	ldx	#17
+	ldy	#6-1
+	jsr	show_cols_frame
+	lda	<col_guy3
+	ldx	#19
+	ldy	#4-1
+	jsr	show_cols
+	lda	smp_ptr+1
+	add	#20
+	tax
+	jsr:rne	play_sample_frame
+; babes
+	lda	<col_babe1
+	ldx	#2
+	ldy	#8-1
+	jsr	show_babes_frame
+	lda	<col_babe2
+	ldx	#4
+	ldy	#6-1
+	jsr	show_babes_frame
+	lda	<col_babe3
+	ldx	#6
+	ldy	#4-1
+	jsr	show_babes
+	lda	smp_ptr+1
+	add	#30
+	tax
+	jsr:rne	play_sample_frame
+; hide guy
+	lda	<col_guy2+2
+	ldx	#19
+	ldy	#4-1
+	jsr	show_cols_frame
+	lda	<col_guy1+2
+	ldx	#17
+	ldy	#6-1
+	jsr	show_cols_frame
+	lda	<col_door
+	ldx	#15
+	ldy	#8-1
+	jsr	show_cols
+	pla
+	add	smp_ptr+1
+	tax
+	jsr:rne	play_sample_frame
+; hide babes
+	lda	<col_babe2+2
+	ldx	#6
+	ldy	#4-1
+	jsr	show_babes_frame
+	lda	<col_babe1+2
+	ldx	#4
+	ldy	#6-1
+	jsr	show_babes_frame
+	lda	<col_door
+	ldx	#2
+	ldy	#8-1
+	jsr	show_babes
+	lda	smp_ptr+1
+	add	#4
+	tax
+	jsr:rne	play_sample_frame
 	rts
 
-scr_panienka
-	ins	'bankowcy.bin',0,7*94
-scr_zbir
-	ins	'bankowcy.bin',3*7*94,7*94
+show_babes_frame
+	jsr	show_babes
+	ldx	smp_ptr+1
+	inx
+	jsr:rne	play_sample_frame
+	rts
+
+show_cols_frame
+	jsr	show_cols
+	ldx	smp_ptr+1
+	inx
+	jsr:rne	play_sample_frame
+	rts
+
+show_babes
+	jsr	show_cols
+	lda	show_cols_sta+1
+	sub	<94*40-26
+	tax
+	bne	show_cols_1	!
+show_cols
+	sta	show_cols_byte+1
+	sty	show_cols_num+1
+show_cols_1
+	stx	show_cols_sta+1
+	mwa	#scr_bankowcy	show_cols_lda+1
+	mva	>scr_drzwi	show_cols_sta+2
+	mva	#94	lines
+show_cols_line
+show_cols_num
+	ldy	#0
+show_cols_byte
+	ldx	col_bank,y
+show_cols_lda
+	lda	a:0,x
+show_cols_sta
+	sta	a:0,y
+	dey
+	bpl	show_cols_byte
+	lda	#40
+	add:sta	show_cols_lda+1
+	scc:inc	show_cols_lda+2
+	lda	#40
+	add:sta	show_cols_sta+1
+	scc:inc	show_cols_sta+2
+	dec	lines
+	bne	show_cols_line
+	rts
 
 	org	$c000
-scr_drzwi
-	ins	'bankdrzwi.mic'
-colors_bank	equ	*-4
+scr_bankowcy
+	ins	'bank.mic',320,94*40
+
+	org	$e000-320
+scr_bank
+	ins	'bank.mic',0,320
+scr_drzwi	org	*+94*40
 dl_bank
-:9	dta	$70
+:8	dta	$70
+	dta	$4e,a(scr_bank)
+:7	dta	$e
 	dta	$4e,a(scr_drzwi)
-:95	dta	$e
+:93	dta	$e
+	dta	$4e,a(scr_podloga)
+:9	dta	$e
 	dta	$41,a(dl_bank)
+
+col_bank
+col_door	equ	*+2
+:3	dta	0,1,2,3,4,5,6,7,8,9,10,11,12
+	dta	0
+col_guy1
+	dta	24,25	; guy
+	dta	13,14,15,16,17,18	; door 3/4
+col_guy2
+	dta	26,27	; guy
+	dta	19,20,21,22 ; door 1/2
+col_guy3
+	dta	28,29,30	; guy
+	dta	23	; door open
+col_babe1
+	dta	31,32	; babe
+	dta	13,14,15,16,17,18	; door 3/4
+col_babe2
+	dta	33,34	; babe
+	dta	19,20,21,22 ; door 1/2
+col_babe3
+	dta	35,36,37	; babe
+	dta	23	; door open
+	ert	>col_babe3!=>col_bank
+
+	org	$f000
+scr_podloga
+	ins	'bank.mic',320+94*40
+colors_bank	equ	*-4
 
 	run	main

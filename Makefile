@@ -1,4 +1,4 @@
-mahna.xex: mahna.asx mahna.smp
+mahna.xex: mahna.asx mahna.smp bank.mic
 	xasm -q -o $@ $< -l
 
 mahna.smp: wav2smp.exe mahna.wav
@@ -6,6 +6,9 @@ mahna.smp: wav2smp.exe mahna.wav
 
 mahna.wav: mahna44k.wav
 	sox -v 2.0 $< -c 1 -r 15556 -1 $@
+
+bank.mic: bank.exe bank.mem
+	./bank.exe bank.mem $@
 
 bankier00.mic: bankowcy.exe bankowcy.bin
 	./bankowcy.exe bankowcy.bin bankier%02d.mic
