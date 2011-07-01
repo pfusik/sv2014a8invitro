@@ -33,6 +33,17 @@ patrzalki
 :20	dta	2
 	dta	8,8,8,8,0,0,0,0,0,0,0,8,8,8,8
 :32	dta	2
+cmoki
+; tu tu tu turu
+	dta	2,2,2,2,16,20,2,6,0
+; tut turut tu
+	dta	2,2,2,2,16,20,2,6,0
+; tut turut tuturu tuturu...
+	dta	2,2,2,2,16,20,2,2
+:2	dta	2,2,2,2,4,4,2,2
+	dta	2,2,2,2,24,24,2,2
+	dta	2,2,2,2,2,2,2,2
+	dta	0
 
 	org	$2100
 scr_omen
@@ -120,32 +131,8 @@ main
 
 loop
 	jsr	start_sample
-; mahna mahna
-	lda	#74*78/256
-	jsr	play_sample
-; tu tu tu turu
-	jsr	show_babka
-	lda	#268*78/256
-	jsr	play_sample
-
-; mahna mahna
-	jsr	show_omen
-	lda	#343*78/256-64
-	jsr	play_sample
-; tut turut tu
-	jsr	show_babka
-	lda	#529*78/256-64
-	jsr	play_sample
-
-; mahna mahna
-	jsr	show_omen
-	lda	#600*78/256-128
-	jsr	play_sample
-; tut turut tuturu tuturu...
-	jsr	show_babka
-	lda	#1125*78/256-128
-	jsr	play_sample
-
+	mva	<cmoki-1	cmoki_lda+1
+:3	jsr	show_omen_babka
 ;	jmp	loop
 
 	mva	<^19	reg_niebo
@@ -161,14 +148,13 @@ loop
 	jsr	start_sample
 ; mahna mahna
 	jsr	show_zbir
-	lda	#74*78/256
-	jsr	play_sample
+	ldx	#74*78/256+64
+	jsr:rne	play_sample_frame
 ; tu tu tu turu
 	jsr	show_panienki
-	lda	#268*78/256
-	jsr	play_sample
+	ldx	#268*78/256+64
+	jsr:rne	play_sample_frame
 
-	jsr	show_omen
 	jmp	loop
 
 fade_in
@@ -203,13 +189,48 @@ wait
 	bne	wait
 	rts
 
-show_omen
+show_omen_babka
 	mwa	#dl_omen	^42
 	mva	colors_omen+1	^16
 	mva	colors_omen+2	^17
 	mva	colors_omen+3	^18
 	mva	<^19	reg_niebo
-	rts
+	ldx	<scr_geba
+	lda	>scr_geba
+show_omen_1
+	stx	show_geba_lda+1
+	sta	show_geba_lda+2
+	mwa	#scr_omen+$1861-$10	show_geba_sta+1
+	ldx	#35
+show_geba_line
+	ldy	#4
+show_geba_lda
+show_geba_sta	equ	*+3
+	mva:rpl	a:0,y	a:0,y-
+	lda	#40
+	add:sta	show_geba_lda+1
+	scc:inc	show_geba_lda+2
+	lda	#40
+	add:sta	show_geba_sta+1
+	scc:inc	show_geba_sta+2
+	dex
+	bne	show_geba_line
+	ldx	smp_ptr+1
+:3	inx
+show_omen_2
+	ldy	smp_ptr+1
+	lda:tay	patrzalki-$40,y
+	mwa	galy_ptrs,y	galy_ptr
+	jsr	play_sample_frame
+	bne	show_omen_2
+	lda	show_geba_lda+1
+	sub	<35*40-5
+	tax
+	lda	show_geba_lda+2
+	sbc	>35*40-5
+	cpx	<scr_geba+40
+	bne	show_omen_1
+;	rts
 
 show_babka
 	mwa	#dl_babka	^42
@@ -217,7 +238,48 @@ show_babka
 	mva	colors_babka+3	^18
 	mva	<^17	reg_niebo
 	lda:rne	^4b
-	rts
+show_babka_0
+	ldx	<scr_cmok
+	lda	>scr_cmok
+show_babka_1
+	stx	show_cmok_lda+1
+	sta	show_cmok_lda+2
+	inc	cmoki_lda+1
+cmoki_lda	lda	cmoki
+	sne:rts
+	pha
+	mwa	#scr_babka+$13fa-$10	show_cmok_sta+1
+	ldx	#22
+show_cmok_line
+	ldy	#2
+show_cmok_lda
+show_cmok_sta	equ	*+3
+	mva:rpl	a:0,y	a:0,y-
+	lda	#40
+	add:sta	show_cmok_lda+1
+	scc:inc	show_cmok_lda+2
+	lda	#40
+	add:sta	show_cmok_sta+1
+	scc:inc	show_cmok_sta+2
+	dex
+	bne	show_cmok_line
+	pla
+	add	smp_ptr+1
+	tax
+show_babka_2
+	ldy	smp_ptr+1
+	lda:tay	patrzalki-$40,y
+	mwa	oczka_ptrs,y	oczka_ptr
+	jsr	play_sample_frame
+	bne	show_babka_2
+	lda	show_cmok_lda+1
+	sub	<22*40-3
+	tax
+	lda	show_cmok_lda+2
+	sbc	>22*40-3
+	cpx	<scr_cmok+24
+	bne	show_babka_1
+	beq	show_babka_0	!
 
 start_sample
 	mva	#0	smp_bank
@@ -226,9 +288,7 @@ start_sample
 	mva	#{bpl}	play_sample_bpl
 	rts
 
-play_sample
-	add	#$40
-	tax
+play_sample_frame
 play_sample_2lines
 	lda	(smp_ptr),0
 :4	lsr	@
@@ -264,14 +324,7 @@ play_sample_same
 	sta	^21
 	lda	^4b
 	bne	play_sample_2lines
-
-	ldy	smp_ptr+1
-	lda:tay	patrzalki-$40,y
-	mwa	galy_ptrs,y	galy_ptr
-	mwa	oczka_ptrs,y	oczka_ptr
-
 	cpx	smp_ptr+1
-	bne	play_sample_2lines
 	rts
 	
 sample_banks
