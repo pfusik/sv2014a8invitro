@@ -104,7 +104,7 @@ oczka_ptr	equ	*-2
 	org	^31
 	dta	$fe
 	org	samples
-	ins	'mahna.smp',4*SAMPLES_PER_BANK
+	ins	'mahna.smp',4*SAMPLES_PER_BANK,$15800-4*SAMPLES_PER_BANK
 FRAMES_PER_MAIN	equ	[*-samples]/156
 
 colors_niebo

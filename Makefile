@@ -1,11 +1,8 @@
 mahna.xex: mahna.asx mahna.smp bank.mic karate.mic
 	xasm -q -o $@ $< -l
 
-mahna.smp: wav2smp.exe mahna.wav
-	./wav2smp.exe mahna.wav $@
-
-mahna.wav: mahna44k.wav
-	sox -v 2.0 $< -c 1 -r 15556 -1 $@
+mahna.smp: wav2smp.exe mahnax.wav
+	./wav2smp.exe mahnax.wav $@
 
 bank.mic: bank.exe bank.mem
 	./bank.exe bank.mem $@
@@ -18,5 +15,9 @@ karate.mic: karateki.exe ik6800.bin
 
 %.exe: %.c
 	gcc -s -O2 -o $@ $<
+
+clean:
+	$(RM) mahna.xex mahna.smp bank.mic bankier??.mic bank.exe karate.mic karate??.mic karate??.bin karateki.exe
+.PHONY: clean
 
 .DELETE_ON_ERROR:
