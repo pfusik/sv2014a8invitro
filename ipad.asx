@@ -1,0 +1,354 @@
+DataMatrix_code	equ	$7000
+DataMatrix_data	equ	$7300
+DataMatrix_SIZE	equ	40
+	icl	'datamatrix.asx'
+
+ipad_SCREENS	equ	5
+ipad_COLS	equ	ipad_SCREENS*40
+ipad_LINES	equ	DataMatrix_SIZE/2
+
+ipad_screen	equ	$9000
+
+ipad_ptr	equ	$80
+ipad_char	equ	$82
+ipad_cnt	equ	$83
+ipad_pos	equ	$84
+
+	org	$8400
+ipad_font
+:16*8	dta	[[#>>[6-[#&4]/2]]&1]*$f0+[[#>>[5-[#&4]/2]]&1]*$0f
+
+	dta	%00000111
+	dta	%00001111
+	dta	%00111111
+	dta	%00111111
+	dta	%01111111
+	dta	%11111111
+	dta	%11111111
+	dta	%11111111
+
+	dta	%11100000
+	dta	%11110000
+	dta	%11111100
+	dta	%11111100
+	dta	%11111110
+	dta	%11111111
+	dta	%11111111
+	dta	%11111111
+
+	dta	%11111111
+	dta	%11111111
+	dta	%11111111
+	dta	%01111111
+	dta	%00111111
+	dta	%00111111
+	dta	%00001111
+	dta	%00000111
+
+	dta	%11111111
+	dta	%11111111
+	dta	%11111111
+	dta	%11111110
+	dta	%11111100
+	dta	%11111100
+	dta	%11110000
+	dta	%11100000
+
+:[32-20]*8	dta	0
+	ins	'atari8.fnt',0,$200
+	ins	'atari8.fnt',$300,$100
+
+ipad_dl
+:13-ipad_LINES/2	dta	$70
+	dta	$42,a(ipad_case),2
+ipad_dl_body
+:ipad_LINES	dta	$42,a(ipad_screen)
+	dta	$42,a(ipad_case+40),2
+	dta	$41,a(ipad_dl)
+
+ipad_case
+	dta	16
+:38	dta	c' '*
+	dta	17
+:40	dta	c' '
+	dta	18
+:38	dta	c' '*
+	dta	19
+
+ipad_text
+:7	dta	10
+	dta	c'          We invite you to',10
+	dta	10
+	dta	c'          ',c' Silly Venture '*,10
+	dta	10
+	dta	c'       The biggest Atari-only',10
+	dta	c'      demoscene event in 2014.',0
+
+:3	dta	10
+	dta	c' WHERE '*,10
+	dta	10
+	dta	c'Silly Venture',10
+	dta	c'2014',10
+	dta	c'takes place in',10
+	dta	c'Gdansk, Poland',10
+	dta	c'School no. 65',10
+	dta	c'address:Sluza 6',10
+:2	dta	10
+	dta	c'Scan this code',10
+	dta	c'for a Google',10
+	dta	c'Maps link. :)',0
+
+	dta	c'https://www.google.com/maps/place/Szko%C5%82a+Podstawowa+nr+65/@54.342052,18.657086,17z',DataMatrix_EOF
+
+:2	dta	10
+	dta	c' WHEN '*,10
+	dta	10
+	dta	c'Silly Venture',10
+	dta	c'2014',10
+	dta	c'starts on',10
+	dta	c'Friday,',10
+	dta	c'December 5th',10
+	dta	c'and lasts till',10
+	dta	c'Sunday,',10
+	dta	c'December 7th',10
+:2	dta	10
+	dta	c'Scan this code',10
+	dta	c'to add',10
+	dta	c'this event to',10
+	dta	c'your calendar.',0
+code2
+	dta	c'BEGIN:VEVENT',10
+	dta	c'SUMMARY:Silly Venture',10
+	ift 1
+	dta	c'URL:http://sillyventure.eu',10
+	dta	c'DTSTART:',129+20,129+14,129+12,129+05,c'T',129+12,129+00,129+00,10
+	dta	c'DTEND:',129+20,129+14,129+12,129+07,c'T',129+12,129+00,129+00,10
+	els
+	dta	c'DTSTART:20141205T120000',10
+	dta	c'DTEND:20141207T120000',10
+	eif
+	dta	c'END:VEVENT',10,DataMatrix_EOF
+	ert	*-code2>DataMatrix_DATA_CODEWORDS
+
+:4	dta	10
+	dta	c' WWW '*,10
+	dta	10
+	dta	c'For more',10
+	dta	c'information,',10
+	dta	c'please visit',10
+	dta	c'sillyventure.eu',10
+:2	dta	10
+	dta	c'Too lazy to',10
+	dta	c'type this link?',10
+	dta	c'Scan it!',0
+
+	dta	c'http://sillyventure.eu/',DataMatrix_EOF
+
+:2	dta	10
+	dta	c' YOU '*,10
+	dta	10
+	dta	c'Remember to',10
+	dta	c'confirm your',10
+	dta	c'attendance.',10
+	dta	c'Type your',10
+	dta	c'nickname here:',10
+	dta	c' '*,10
+:2	dta	10
+	dta	c'Scan the',10
+	dta	c'generated code',10
+	dta	c'and use it to',10
+	dta	c'send email.',0
+	dta	c'mailto:atari@sillyventure.eu?subject=I%27m+coming+to+SV&body=I%27m++and+I+will+be+at+Silly+Venture%21',DataMatrix_EOF
+
+ipad_keymap
+	dta	c'lj',0,0,0,c'k',0,0,c'o',0,c'pu',0,c'i-',0
+	dta	c'v',0,c'c',0,0,c'bxz4',0,c'36',0,c'521'
+	dta	0,c' ',0,c'n',0,c'm/',0,c'r',0,c'ey',0,c'twq'
+	dta	c'9',0,c'07',0,c'8',0,0,c'fhd',0,0,c'gsa'
+
+main
+	mwa	#ipad_screen	ipad_ptr
+	ldx	#ipad_LINES
+ipad_clear_line
+	lda	#' '
+	ldy	#0
+ipad_clear_char
+	sta	(ipad_ptr),y
+	iny:cpy	#ipad_COLS
+	bcc	ipad_clear_char
+	lda	#ipad_COLS
+	add:sta	ipad_ptr
+	scc:inc	ipad_ptr+1
+	dex
+	bne	ipad_clear_line
+
+	lda	#0
+	jsr	ipad_print
+	lda	#40
+	jsr	ipad_print
+	lda	#40
+	jsr	ipad_code
+	lda	#80
+	jsr	ipad_print
+	lda	#80
+	jsr	ipad_code
+	lda	#120
+	jsr	ipad_print
+	lda	#120
+	jsr	ipad_code
+	lda	#160
+	jsr	ipad_print
+	lda	#0
+	jsr	ipad_set_body
+
+	sei
+	inc	^4e
+	lda:rne	^4b
+	mwa	#ipad_dl	^42
+	mva	>ipad_font	^49
+	mva	#4	^1a
+	mva	#0	^17
+	sta	^12
+	sta	^13
+	mva	#$30	^04
+	mva	#$cc	^05
+	mva	#$ff	^0c
+
+ipad_start
+	mva	#0	ipad_pos
+
+ipad_page
+	ldx	#250
+ipad_wait
+:2	jsr	ipad_frame
+	dex
+	bne	ipad_wait
+
+	mva	#40	ipad_cnt
+ipad_slide
+	inc:lda	ipad_pos
+	jsr	ipad_set_body
+	jsr	ipad_frame
+	dec	ipad_cnt
+	bne	ipad_slide
+
+	lda	ipad_pos
+	cmp	#ipad_COLS-40
+	bcc	ipad_page
+
+	jmp	ipad_start
+
+ipad_frame
+	lda	#60-ipad_LINES*2
+	cmp:rne	^4b
+	mva	#$a	^11
+	mva	#10	^18
+
+	lda	#68+ipad_LINES*2
+	cmp:rne	^4b
+	mva	#0	^11
+	mva	#4	^18
+	rts
+
+ipad_print
+	add	<ipad_screen+2
+	sta	ipad_ptr
+	lda	#0
+	adc	>ipad_screen+2
+	sta	ipad_ptr+1
+ipad_print_line
+	ldy	#0
+ipad_print_char
+	jsr	ipad_get_text
+	cmp	#10
+	beq	ipad_print_next_line
+	bcc	ipad_print_end
+	sta	(ipad_ptr),y+
+	bpl	ipad_print_char
+ipad_print_next_line
+	lda	#ipad_COLS
+	add:sta	ipad_ptr
+	bcc	ipad_print_line
+	inc	ipad_ptr+1
+	bne	ipad_print_line
+ipad_print_end
+	rts
+
+ipad_code
+	add	<ipad_screen+18
+	sta	ipad_code_address
+	lda	#0
+	adc	>ipad_screen+18
+	sta	ipad_code_address+1
+
+	ldy	#0
+ipad_code_text
+	jsr	ipad_get_text
+	sta	DataMatrix_message,y+
+	cmp	#DataMatrix_EOF
+	bne	ipad_code_text
+	jsr	DataMatrix_code
+
+	mwa	#DataMatrix_symbol	ipad_ptr
+	mva	#DataMatrix_SIZE/2	ipad_cnt
+ipad_code_line
+	ldx	#0
+ipad_code_char
+	txa
+	asl	@
+	tay
+	lda	(ipad_ptr),y
+	lsr	@
+	rol	ipad_char
+	iny
+	lda	(ipad_ptr),y
+	lsr	@
+	rol	ipad_char
+	tya
+	add	#DataMatrix_SIZE-1
+	tay
+	lda	(ipad_ptr),y
+	lsr	@
+	rol	ipad_char
+	iny
+	lda	(ipad_ptr),y
+	lsr	@
+	lda	ipad_char
+	rol	@
+	and	#$f
+	sta	ipad_screen+18,x
+ipad_code_address	equ	*-2
+	inx
+	cpx	#DataMatrix_SIZE/2
+	bcc	ipad_code_char
+	lda	#2*DataMatrix_SIZE
+	add:sta	ipad_ptr
+	scc:inc	ipad_ptr+1
+	lda	#ipad_COLS
+	add:sta	ipad_code_address
+	scc:inc	ipad_code_address+1
+	dec	ipad_cnt
+	bne	ipad_code_line
+	rts
+
+ipad_get_text
+	lda	ipad_text
+	inw	*-2
+	rts
+
+ipad_set_body
+	ldx	>ipad_screen
+	ldy	#0
+ipad_set_body_line
+	sta	ipad_dl_body+1,y
+	txa:sta	ipad_dl_body+2,y
+	lda	ipad_dl_body+1,y
+	add	#ipad_COLS
+	scc:inx
+:3	iny
+	cpy	#ipad_LINES*3
+	bcc	ipad_set_body_line
+	rts
+
+	run	main
+	end
