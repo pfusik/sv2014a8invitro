@@ -203,16 +203,20 @@ ipad_clear_char
 
 	sei
 	inc	^4e
-	lda:rne	^4b
+	lda:rne	^4b	; wait for vblk
 	mwa	#ipad_dl	^42
 	mva	>ipad_font	^49
-	mva	#4	^1a
-	mva	#0	^17
-	sta	^12
-	sta	^13
-	mva	#$30	^04
-	mva	#$cc	^05
-	mva	#$ff	^0c
+	mva	#1	^1b	; players/missiles over graphics
+	mva	#4	^1a	; gray background
+	sta	^12	; gray player/missile
+	mva	#0	^17	; black ink
+	mva	#$a	^18	; white paper
+	mva	#$30	^00	; player 0 on the left
+	mva	#$cc	^04	; missile 0 on the right
+	mva	#3	^08	; player 0 = quad width
+	sta	^0c	; missile 0 = quad width
+	mva	#$80	^0d	; player 0 = 10000000
+	mva	#2	^11	; missile 0 = 10
 
 ipad_start
 	mva	#0	ipad_pos
@@ -241,13 +245,11 @@ ipad_slide
 ipad_frame
 	lda	#60-ipad_LINES*2
 	cmp:rne	^4b
-	mva	#$a	^11
-	mva	#10	^18
+	mva	#0	^12
 
 	lda	#68+ipad_LINES*2
 	cmp:rne	^4b
-	mva	#0	^11
-	mva	#4	^18
+	mva	#4	^12
 	rts
 
 ipad_print
