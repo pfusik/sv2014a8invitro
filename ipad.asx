@@ -98,7 +98,7 @@ ipad_text
 	dta	c'for a Google',10
 	dta	c'Maps link. :)',0
 
-	dta	c'https://www.google.com/maps/place/Szko%C5%82a+Podstawowa+nr+65/@54.342052,18.657086,17z',DataMatrix_EOF
+	dta	c'https://maps.google.com/maps?q=Szko%C5%82a+Podstawowa+nr+65,+%C5%9Aluza,+Gda%C5%84sk,+Polska',DataMatrix_EOF
 
 :2	dta	10
 	dta	c' WHEN '*,10
