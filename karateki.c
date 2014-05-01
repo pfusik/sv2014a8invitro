@@ -45,12 +45,17 @@ int main(int argc, char *argv[])
 					out[y - 32 + 64 * (p + x)] = ~b;
 					switch (i) {
 					case 0: o = 0; break;
+#if 0
 					case 23: o = 7; break;
 					case 30: o = 13; break;
 					case 48: o = 18; break;
 					case 49: o = 21; break;
 					case 50: o = 25; break;
 					case 51: o = 32; break;
+#else
+					case 50: o = 7; break;
+					case 51: o = 14; break;
+#endif
 					default: o = -1; break;
 					}
 					if (o >= 0)

@@ -1,0 +1,31 @@
+KARATE_COLS	equ	21
+KARATE_SKIP_ROWS	equ	13
+KARATE_ROWS	equ	51
+
+scr_arena	equ	$3000	; KARATE_ROWS*40
+
+	opt	h-
+	org	$300
+scr_karate
+:KARATE_ROWS	ins	'karate.mic',[KARATE_SKIP_ROWS+#]*40,KARATE_COLS
+
+dl_karate
+:11	dta	$70
+	dta	$48,a(scr_arena+5)
+	dta	$4e,a(scr_arena)
+:KARATE_ROWS-1	dta	$e
+	dta	$48,a(scr_arena+5)
+	dta	$41,a(dl_karate)
+
+karate_gtia
+	dta	$34,$70,$ac,0
+	dta	0,0,0,0
+	dta	$ff,$ff,$ff,$ff,$ff
+	dta	$ff,$ff,$ff,0,0
+	dta	$0e,$36,$88,0
+	dta	$3a,$00,$06,0,$00
+	dta	4,0,2
+twarz_karate
+:100	dta	[#>>2]&3
+
+	end

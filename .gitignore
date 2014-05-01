@@ -1,9 +1,10 @@
 *.xex
 *.lst
+*.dfl
+*.bin
 mahna.smp
 bank.mic
 bankier??.mic
 karate.mic
 karate??.mic
-karate??.bin
 *.exe

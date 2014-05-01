@@ -1,0 +1,50 @@
+scr_drzwi	equ	$3000	; 94*40
+
+	opt	h-
+	org	$d800
+	ins	'dasomen.dfl'
+
+	opt	f+
+	org	$f000-18*40-4
+scr_bank
+	ins	'bank.mic',0,8*40
+scr_podloga
+	ins	'bank.mic',320+94*40
+colors_bank	equ	*-4
+scr_bankowcy
+	ins	'bank.mic',320,94*40
+dl_bank
+:8	dta	$70
+	dta	$4e,a(scr_bank)
+:7	dta	$e
+	dta	$4e,a(scr_drzwi)
+:93	dta	$e
+	dta	$4e,a(scr_podloga)
+:9	dta	$e
+	dta	$41,a(dl_bank)
+
+col_bank
+col_door	equ	*+2
+:3	dta	0,1,2,3,4,5,6,7,8,9,10,11,12
+	dta	0
+col_guy1
+	dta	24,25	; guy
+	dta	13,14,15,16,17,18	; door 3/4
+col_guy2
+	dta	26,27	; guy
+	dta	19,20,21,22 ; door 1/2
+col_guy3
+	dta	28,29,30	; guy
+	dta	23	; door open
+col_babe1
+	dta	31,32	; babe
+	dta	13,14,15,16,17,18	; door 3/4
+col_babe2
+	dta	33,34	; babe
+	dta	19,20,21,22 ; door 1/2
+col_babe3
+	dta	35,36,37	; babe
+	dta	23	; door open
+	ert	>col_babe3!=>col_bank
+
+	end

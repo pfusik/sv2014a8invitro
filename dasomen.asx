@@ -1,0 +1,59 @@
+scr_babka	equ	$a100
+
+	opt	h-
+	org	$8f8
+scr_galy
+	ins	'dasgaly.mic',0,400
+scr_geba
+	ins	'dasgeba.mic',0,1400
+	org	$1000
+scr_oczka1
+	ins	'dasoczka.mic',0,800
+scr_oczka2
+	ins	'dasoczka.mic',960,800
+scr_oczka3
+	ins	'dasoczka.mic',2*960,800
+scr_oczka4
+	ins	'dasoczka.mic',3*960,800
+scr_cmok
+	ins	'dascmok.mic',0,880
+galy_ptrs
+	dta	a(scr_omen+126*40,scr_omen+126*40,scr_omen+126*40,scr_galy,scr_galy)
+oczka_ptrs
+	dta	a(scr_babka+80*40,scr_oczka1,scr_oczka2,scr_oczka3,scr_oczka4)
+patrzalki
+:32	dta	2
+	dta	4,4,4,4,6,6,6,6,6,6,4,4,4,4
+:20	dta	2
+	dta	8,8,8,8,0,0,0,0,0,0,0,8,8,8,8
+:32	dta	2
+cmoki
+; tu tu tu turu
+	dta	2,2,2,2,16,20,2,6,0
+; tut turut tu
+	dta	2,2,2,2,16,20,2,6,0
+; tut turut tuturu tuturu...
+	dta	2,2,2,2,16,20,2,2
+:2	dta	2,2,2,2,4,4,2,2
+	dta	2,2,2,2,24,24,2,2
+	dta	2,2,2,2,2,2,2,2
+	dta	0
+
+	opt	f+
+	org	$2100
+scr_omen
+	ins	'dasomen.mic'
+colors_omen	equ	*-4
+dl_omen
+	dta	$70,$70,$70,$4e,a(scr_omen)
+:95	dta	$e
+	dta	$4e,a(scr_omen+$f00)
+:29	dta	$e
+	dta	$4e,a(scr_omen+126*40)
+galy_ptr	equ	*-2
+:9	dta	$e
+	dta	$4e,a(scr_omen+136*40)
+:55	dta	$e
+	dta	$41,a(dl_omen)
+
+	end

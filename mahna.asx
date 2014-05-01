@@ -1,111 +1,19 @@
+inflate	equ	$9f00
+inflate_zp	equ	$f0
+
 samples	equ	$4000
 SAMPLES_PER_BANK	equ	16384
+
+col_stoi	equ	0
+col_odwr	equ	7
+col_gada	equ	14
 
 smp_ptr	equ	$80
 smp_bank	equ	$82
 colors_ptr	equ	$84
 lines	equ	$86
-first	equ	$87
 
-pmg_karate	equ	$600
-
-	org	$8f8
-scr_galy
-	ins	'dasgaly.mic',0,400
-scr_geba
-	ins	'dasgeba.mic',0,1400
-	org	$1000
-scr_oczka1
-	ins	'dasoczka.mic',0,800
-scr_oczka2
-	ins	'dasoczka.mic',960,800
-scr_oczka3
-	ins	'dasoczka.mic',2*960,800
-scr_oczka4
-	ins	'dasoczka.mic',3*960,800
-scr_cmok
-	ins	'dascmok.mic',0,880
-galy_ptrs
-	dta	a(scr_omen+126*40,scr_omen+126*40,scr_omen+126*40,scr_galy,scr_galy)
-oczka_ptrs
-	dta	a(scr_babka+80*40,scr_oczka1,scr_oczka2,scr_oczka3,scr_oczka4)
-patrzalki
-:32	dta	2
-	dta	4,4,4,4,6,6,6,6,6,6,4,4,4,4
-:20	dta	2
-	dta	8,8,8,8,0,0,0,0,0,0,0,8,8,8,8
-:32	dta	2
-cmoki
-; tu tu tu turu
-	dta	2,2,2,2,16,20,2,6,0
-; tut turut tu
-	dta	2,2,2,2,16,20,2,6,0
-; tut turut tuturu tuturu...
-	dta	2,2,2,2,16,20,2,2
-:2	dta	2,2,2,2,4,4,2,2
-	dta	2,2,2,2,24,24,2,2
-	dta	2,2,2,2,2,2,2,2
-	dta	0
-
-	org	$2100
-scr_omen
-	ins	'dasomen.mic'
-colors_omen	equ	*-4
-dl_omen
-	dta	$70,$70,$70,$4e,a(scr_omen)
-:95	dta	$e
-	dta	$4e,a(scr_omen+$f00)
-:29	dta	$e
-	dta	$4e,a(scr_omen+126*40)
-galy_ptr	equ	*-2
-:9	dta	$e
-	dta	$4e,a(scr_omen+136*40)
-:55	dta	$e
-	dta	$41,a(dl_omen)
-
-	org	$a100
-scr_babka
-;	ins	'dasbabka.mic'
-; patch one red pixel on the cheek to compensate for inaccurate color changes (blue -> red)
-	ins	'dasbabka.mic',0,$f34
-	dta	$40
-	ins	'dasbabka.mic',$f35
-colors_babka	equ	*-4
-dl_babka
-	dta	$70,$70,$70,$4e,a(scr_babka)
-:79	dta	$e
-	dta	$4e,a(scr_babka+80*40)
-oczka_ptr	equ	*-2
-:15	dta	$e
-	dta	$4e,a(scr_babka+$f00)
-:95	dta	$e
-	dta	$41,a(dl_babka)
-
-	org	^31
-	dta	$e3
-	org	samples
-	ins	'mahna.smp',0,SAMPLES_PER_BANK
-
-	org	^31
-	dta	$e7
-	org	samples
-	ins	'mahna.smp',SAMPLES_PER_BANK,SAMPLES_PER_BANK
-
-	org	^31
-	dta	$eb
-	org	samples
-	ins	'mahna.smp',2*SAMPLES_PER_BANK,SAMPLES_PER_BANK
-
-	org	^31
-	dta	$ef
-	org	samples
-	ins	'mahna.smp',3*SAMPLES_PER_BANK,SAMPLES_PER_BANK
-
-	org	^31
-	dta	$fe
-	org	samples
-	ins	'mahna.smp',4*SAMPLES_PER_BANK,$15800-4*SAMPLES_PER_BANK
-FRAMES_PER_MAIN	equ	[*-samples]/156
+pmg_karate	equ	$3e00
 
 colors_niebo
 :16	dta	$86	; ramka
@@ -118,112 +26,28 @@ colors_niebo
 :49	dta	$34
 :4	dta	$34	; zapas
 
-main
-	sei:inc	^4e
+omen
 	lda:rne	^4b
 	ldx	#29
 	sta:rpl	^00,x-
-	mva	#$22	^40
-	mva	#1	first
+	mwa	#$d800	inflate_zp
+	mwa	#$8f8	inflate_zp+2
+	jsr	inflate
 
-loop
-	jsr	init_karate
-	lda	first
-	beq	was_karate
-	ldx	#200
-	jsr	wait
-was_karate
-	jsr	start_sample
-:2	jsr	show_karateki_default
-	lda	#126
-	jsr	show_karateki
-	lda	first
-	beq	was_karate2
-	ldx	#80
-	jsr	wait
-was_karate2
-
-	lda	#0
-	ldx	#29
-	sta:rpl	^00,x-
+	lda:rne	^4b
 	mva	#$22	^40
-	lda	first
-	beq	was_omen
 	mwa	#dl_omen	^42
 	mwa	#colors_omen	colors_ptr
 	jsr	fade_in
 	ldx	#200
 	jsr	wait
-was_omen
 	jsr	start_sample
 	mva	<cmoki-1	cmoki_lda+1
-:3	jsr	show_omen_babka
-;	jmp	loop
-
-	mva	<^19	reg_niebo
-	mwa	#dl_bank	^42
-	mva	#0	^16
-	sta	^17
-	sta	^18
-	lda	<col_bank
-	ldx	#0
-	ldy	#40-1
-	jsr	show_cols
-
-	lsr	first
-	bcc	was_bank
-	mwa	#colors_bank	colors_ptr
-	jsr	fade_in
-	ldx	#80
-	jsr	wait
-was_bank
-	mva	colors_bank+1	^16
-	mva	colors_bank+2	^17
-	mva	colors_bank+3	^18
-	jsr	start_sample
-:2	jsr	show_guy_babes_default
-	lda	#115
-	jsr	show_guy_babes
-
-	jmp	loop
-
-fade_in
-	ldx	#$f1
-fade_in_1
-	jsr	fade
-	inx
-	cpx	#1
-	bne	fade_in_1
-	rts
-
-fade
-	lda:rne	^4b
-	sta:sta	^4a
-	ldy	#3
-fade_1
-	txa
-	add	(colors_ptr),y
-	eor	(colors_ptr),y
-	cmp	#$10
-	eor	(colors_ptr),y
-	scc:lda	#0
-	sta	^16-1,y
-	dey
-	bne	fade_1
-	rts
-
-wait
-	lda:req	^4b
-	lda:rne	^4b
-	dex
-	bne	wait
-	rts
-
+:2	jsr	show_omen_babka
 show_omen_babka
 	mwa	#dl_omen	^42
-	mva	colors_omen+1	^16
-	mva	colors_omen+2	^17
-	mva	colors_omen+3	^18
+	ldx	#3
+	mva:rne	colors_omen,x	^16-1,x-
 	mva	<^19	reg_niebo
 	ldx	<scr_geba
 	lda	>scr_geba
@@ -261,7 +85,6 @@ show_omen_2
 	cpx	<scr_geba+40
 	bne	show_omen_1
 ;	rts
-
 show_babka
 	mwa	#dl_babka	^42
 	mva	colors_babka+1	^16
@@ -311,56 +134,30 @@ show_babka_2
 	bne	show_babka_1
 	beq	show_babka_0	!
 
-start_sample
-	mva	#0	smp_bank
-	mva	sample_banks	^31
-	mwa	#samples	smp_ptr
-	mva	#{bpl}	play_sample_bpl
-	rts
-
-play_sample_frame
-play_sample_2lines
-	lda	(smp_ptr),0
-:4	lsr	@
-	ora	#$f0
-	ldy	^4b
-	sta	^4a
-	sta	$d211
-	sta	^21
-	mva	colors_niebo,y	^19
-reg_niebo	equ	*-2
-	lda	(smp_ptr),0
-	ora	#$f0
-	inc	smp_ptr
-	bne	play_sample_same
-	inc	smp_ptr+1
-play_sample_bpl
-	bpl	play_sample_same
-	pha
-	sta	^4a
-	lsr	smp_ptr+1
-	txa
-	sbc	#$3f	-
-	tax
-	inc:ldy	smp_bank
-	sta	^4a
-	mva	sample_banks,y	^31
-	cpy	#4
-	scc:mva	#{bne}	play_sample_bpl
-	pla
-play_sample_same
-	sta	^4a
-	sta	$d211
-	sta	^21
-	lda	^4b
-	bne	play_sample_2lines
-	cpx	smp_ptr+1
-	rts
-	
-sample_banks
-	dta	$e2,$e6,$ea,$ee,$fe
-
 ; ------------
+
+bank
+	ldx	#29
+	lda	#0
+	sta:rpl	^00,x-
+	mva	<^19	reg_niebo
+	mwa	#dl_bank	^42
+	lda	<col_bank
+	ldx	#0
+	ldy	#40-1
+	jsr	show_cols
+
+	mwa	#colors_bank	colors_ptr
+	jsr	fade_in
+	ldx	#80
+	jsr	wait
+	mva	colors_bank+1	^16
+	mva	colors_bank+2	^17
+	mva	colors_bank+3	^18
+	jsr	start_sample
+:2	jsr	show_guy_babes_default
+	lda	#115
+	jmp	show_guy_babes
 
 show_guy_babes_default
 	lda	#20
@@ -487,7 +284,7 @@ show_cols_sta
 
 ; ------------
 
-init_karate
+karate
 	mva	#0	^40
 
 	lda	#$ff
@@ -498,7 +295,7 @@ cls_karateki_1
 cls_karateki_2
 	sta:rne	scr_arena,x+
 	iny
-	cpy	>scr_arena+64*40
+	cpy	>scr_arena+KARATE_ROWS*40+$ff
 	bcc	cls_karateki_1
 
 	txa	#0
@@ -508,20 +305,18 @@ pmg_karateki_1
 	inx
 	bne	pmg_karateki_1
 	lda	#$ff
-	ldx	#32-1
+	ldx	#27-1
 pmg_karateki_2
-	sta	pmg_karate+$30,x
-	sta	pmg_karate+$b0,x
-	sta	pmg_karate+$130,x
+	sta	pmg_karate+$34,x
+	sta	pmg_karate+$b4,x
+	sta	pmg_karate+$134,x
 	dex
 	bpl	pmg_karateki_2
 
 	lda	#col_stoi
 	ldx	#17
-	ldy	#6-1
 	jsr	show_karate
 	lda	#col_stoi
-	ldy	#6-1
 	jsr	show_karate2
 
 	lda:rne	^4b
@@ -530,7 +325,15 @@ pmg_karateki_2
 	mva	>pmg_karate	^47
 	ldx	#$1d
 	mva:rpl	karate_gtia,x	^00,x-
-	rts
+
+	ldx	#200
+	jsr	wait
+	jsr	start_sample
+:2	jsr	show_karateki_default
+	lda	#126
+	jsr	show_karateki
+	ldx	#80
+	jmp	wait
 
 show_karateki_default
 	lda	#20
@@ -540,11 +343,9 @@ show_karateki
 ; mahna
 	lda	#col_odwr
 	ldx	#17
-	ldy	#7-1
 	jsr	show_karate_frame
 	lda	#col_gada
 	ldx	#17
-	ldy	#7-1
 	jsr	show_karate
 	lda	smp_ptr+1
 	add	#20
@@ -552,10 +353,8 @@ show_karateki
 	jsr:rne	play_sample_frame
 ; tutu
 	lda	#col_odwr
-	ldy	#7-1
 	jsr	show_karate2_frame
 	lda	#col_gada
-	ldy	#7-1
 	jsr	show_karate2
 	lda	smp_ptr+1
 	add	#30
@@ -564,11 +363,9 @@ show_karateki
 ; stop center
 	lda	#col_odwr
 	ldx	#17
-	ldy	#7-1
 	jsr	show_karate_frame
 	lda	#col_stoi
 	ldx	#17
-	ldy	#7-1
 	jsr	show_karate
 	pla
 	add	smp_ptr+1
@@ -579,22 +376,20 @@ show_karateki_3
 	lsr	@
 	lda	#~$aa
 	scc:lda	#~$a6
-	sta	scr_arena+22*40+2+2
-	sta	scr_arena+22*40+32+2
+	sta	scr_arena+9*40+2+2
+	sta	scr_arena+9*40+32+2
 	lda	twarz_karate-$40,y
 :2	lsr	@
 	lda	#~$95
 	scc:lda	#~$aa
-	sta	scr_arena+17*40+2+2
-	sta	scr_arena+17*40+32+2
+	sta	scr_arena+4*40+2+2
+	sta	scr_arena+4*40+32+2
 	jsr	play_sample_frame
 	bne	show_karateki_3
 ; stop sides
 	lda	#col_odwr
-	ldy	#7-1
 	jsr	show_karate2_frame
 	lda	#col_stoi
-	ldy	#7-1
 	jsr	show_karate2
 	lda	smp_ptr+1
 	add	#4
@@ -617,24 +412,23 @@ show_karate_frame
 	rts
 
 show_karate2
+	pha
 	ldx	#2
 	jsr	show_karate
+	pla
 	ldx	#32
-	bne	show_karate_1	!
 show_karate
-	sty	show_karate_line+1
 	sta	show_karate_lda+1
-show_karate_1
 	mva	>scr_karate	show_karate_lda+2
 	stx	show_karate_sta+1
 	mva	>scr_arena	show_karate_sta+2
-	ldy	#64
+	ldy	#KARATE_ROWS
 show_karate_line
-	ldx	#0
+	ldx	#7-1
 show_karate_lda
 show_karate_sta	equ	*+3
 	mva:rpl	a:0,x	a:0,x-
-	lda	#40
+	lda	#KARATE_COLS
 	add:sta	show_karate_lda+1
 	scc:inc	show_karate_lda+2
 	lda	#40
@@ -644,78 +438,91 @@ show_karate_sta	equ	*+3
 	bne	show_karate_line
 	rts
 
-	org	$c000
-scr_bankowcy
-	ins	'bank.mic',320,94*40
+; ------------
 
-	org	$e000-320
-scr_bank
-	ins	'bank.mic',0,320
-scr_arena
-scr_drzwi	org	*+94*40
-dl_bank
-:8	dta	$70
-	dta	$4e,a(scr_bank)
-:7	dta	$e
-	dta	$4e,a(scr_drzwi)
-:93	dta	$e
-	dta	$4e,a(scr_podloga)
-:9	dta	$e
-	dta	$41,a(dl_bank)
+fade_in
+	ldx	#$f1
+fade_in_1
+	jsr	fade
+	inx
+	cpx	#1
+	bne	fade_in_1
+	rts
 
-col_bank
-col_door	equ	*+2
-:3	dta	0,1,2,3,4,5,6,7,8,9,10,11,12
-	dta	0
-col_guy1
-	dta	24,25	; guy
-	dta	13,14,15,16,17,18	; door 3/4
-col_guy2
-	dta	26,27	; guy
-	dta	19,20,21,22 ; door 1/2
-col_guy3
-	dta	28,29,30	; guy
-	dta	23	; door open
-col_babe1
-	dta	31,32	; babe
-	dta	13,14,15,16,17,18	; door 3/4
-col_babe2
-	dta	33,34	; babe
-	dta	19,20,21,22 ; door 1/2
-col_babe3
-	dta	35,36,37	; babe
-	dta	23	; door open
-	ert	>col_babe3!=>col_bank
+fade
+	lda:rne	^4b
+	sta:sta	^4a
+	ldy	#3
+fade_1
+	txa
+	add	(colors_ptr),y
+	eor	(colors_ptr),y
+	cmp	#$10
+	eor	(colors_ptr),y
+	scc:lda	#0
+	sta	^16-1,y
+	dey
+	bne	fade_1
+	rts
 
-	org	$f000
-scr_podloga
-	ins	'bank.mic',320+94*40
-colors_bank	equ	*-4
+wait
+	lda:req	^4b
+	lda:rne	^4b
+	dex
+	bne	wait
+	rts
 
-dl_karate
-:10	dta	$70
-	dta	$48,a(scr_arena)
-	dta	$4e,a(scr_arena)
-:63	dta	$e
-	dta	$48,a(scr_arena)
-	dta	$41,a(dl_karate)
-	org	*+<-*	; align to page boundary
-scr_karate
-	ins	'karate.mic'
-col_stoi	equ	0
-col_odwr	equ	25
-col_gada	equ	32
-;colors_karate	equ	*-4
+start_sample
+	mva	#0	smp_bank
+	mva	sample_banks	^31
+	mwa	#samples	smp_ptr
+	mva	#{bpl}	play_sample_bpl
+	rts
 
-karate_gtia
-	dta	$34,$70,$ac,0
-	dta	0,0,0,0
-	dta	$ff,$ff,$ff,$ff,$ff
-	dta	$ff,$ff,$ff,0,0
-	dta	$0e,$36,$88,0
-	dta	$3a,$00,$06,0,$00
-	dta	4,0,2
-twarz_karate
-:100	dta	[#>>2]&3
+play_sample_frame
+play_sample_2lines
+	lda	(smp_ptr),0
+:4	lsr	@
+	ora	#$f0
+	ldy	^4b
+	sta	^4a
+	sta	$d211
+	sta	^21
+	mva	colors_niebo,y	^19
+reg_niebo	equ	*-2
+	lda	(smp_ptr),0
+	ora	#$f0
+	inc	smp_ptr
+	bne	play_sample_same
+	inc	smp_ptr+1
+play_sample_bpl
+	bpl	play_sample_same
+	pha
+	sta	^4a
+	lsr	smp_ptr+1
+	txa
+	sbc	#$3f	-
+	tax
+	inc:ldy	smp_bank
+	sta	^4a
+	mva	sample_banks,y	^31
+	cpy	#4
+	scc:mva	#{bne}	play_sample_bpl
+	pla
+play_sample_same
+	sta	^4a
+	sta	$d211
+	sta	^21
+	lda	^4b
+	bne	play_sample_2lines
+	cpx	smp_ptr+1
+	rts
+	
+sample_banks
+	dta	$e2,$e6,$ea,$ee,$fe
 
-	run	main
+	opt	o-
+	icl	'karate.asx'
+	icl	'dasomen.asx'
+	icl	'bank.asx'
+	end

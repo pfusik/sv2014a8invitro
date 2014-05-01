@@ -1,21 +1,256 @@
-DataMatrix_code	equ	$7000
-DataMatrix_data	equ	$7300
 DataMatrix_SIZE	equ	40
-	icl	'datamatrix.asx'
 
 ipad_SCREENS	equ	5
 ipad_COLS	equ	ipad_SCREENS*40
 ipad_LINES	equ	DataMatrix_SIZE/2
 
-ipad_screen	equ	$9000
+DataMatrix_data	equ	$2400
+ipad_font	equ	$2c00
+ipad_screen	equ	$3000
 
 ipad_ptr	equ	$80
 ipad_char	equ	$82
 ipad_cnt	equ	$83
 ipad_pos	equ	$84
 
-	org	$8400
-ipad_font
+	opt	h-
+	org	$a100
+;	ins	'dasbabka.mic'
+; patch one red pixel on the cheek to compensate for inaccurate color changes (blue -> red)
+	ins	'dasbabka.mic',0,$f34
+	dta	$40
+	ins	'dasbabka.mic',$f35
+colors_babka	equ	*-4
+
+main
+	sei:inc	^4e
+	inc	^40
+	mva	#$fe	^31
+	mwa	#scr_karate	inflate_zp+2
+	jsr	inflate
+loop
+	jsr	omen
+	jsr	ipad
+	jsr	bank
+	jsr	ipad
+	jsr	karate
+	jsr	ipad
+	jmp	loop
+
+ipad
+	ldx	#29
+	lda	#0
+	sta:rpl	^00,x-
+	ldx	#ipad_semigfx_len
+	mva:rne	ipad_semigfx-1,x	ipad_font-1,x-
+	mva	#$ff	^31
+ipad_init_font
+	mva	$e000,x	ipad_font+$100,x
+	mva	$e100,x	ipad_font+$200,x
+	mva	$e300,x	ipad_font+$300,x
+	inx
+	bne	ipad_init_font
+	mva	#$fe	^31
+	ert	*>$c000
+	mwa	#ipad_screen	ipad_ptr
+	ldx	#ipad_LINES
+ipad_clear_line
+	lda	#' '
+	ldy	#0
+ipad_clear_char
+	sta	(ipad_ptr),y
+	iny:cpy	#ipad_COLS
+	bcc	ipad_clear_char
+	lda	#ipad_COLS
+	add:sta	ipad_ptr
+	scc:inc	ipad_ptr+1
+	dex
+	bne	ipad_clear_line
+
+	mwa	#ipad_text	ipad_get_text+1
+	lda	#0
+	jsr	ipad_print
+	lda	#40
+	jsr	ipad_print
+	lda	#40
+	jsr	ipad_code
+	lda	#80
+	jsr	ipad_print
+	lda	#80
+	jsr	ipad_code
+	lda	#120
+	jsr	ipad_print
+	lda	#120
+	jsr	ipad_code
+	lda	#160
+	jsr	ipad_print
+	lda	#0
+	jsr	ipad_set_body
+
+	lda:rne	^4b	; wait for vblk
+	mva	#$22	^40
+	mwa	#ipad_dl	^42
+	mva	>ipad_font	^49
+	mva	#1	^1b	; players/missiles over graphics
+	mva	#4	^1a	; gray background
+	sta	^12	; gray player/missile
+;	mva	#0	^17	; black ink
+	mva	#$a	^18	; white paper
+	mva	#$30	^00	; player 0 on the left
+	mva	#$cc	^04	; missile 0 on the right
+	mva	#3	^08	; player 0 = quad width
+	sta	^0c	; missile 0 = quad width
+	mva	#$80	^0d	; player 0 = 10000000
+	mva	#2	^11	; missile 0 = 10
+
+ipad_start
+	mva	#0	ipad_pos
+
+ipad_page
+	ldx	#250
+ipad_wait
+:2	jsr	ipad_frame
+	dex
+	bne	ipad_wait
+
+	mva	#40	ipad_cnt
+ipad_slide
+	inc:lda	ipad_pos
+	jsr	ipad_set_body
+	jsr	ipad_frame
+	dec	ipad_cnt
+	bne	ipad_slide
+
+	lda	ipad_pos
+	cmp	#ipad_COLS-40
+	bcc	ipad_page
+
+	rts
+
+ipad_frame
+	lda	#60-ipad_LINES*2
+	cmp:rne	^4b
+	mva	#0	^12
+
+	lda	#68+ipad_LINES*2
+	cmp:rne	^4b
+	mva	#4	^12
+	rts
+
+ipad_print
+	add	<ipad_screen+2
+	sta	ipad_ptr
+	lda	#0
+	adc	>ipad_screen+2
+	sta	ipad_ptr+1
+ipad_print_line
+	ldy	#0
+ipad_print_char
+	jsr	ipad_get_text
+	cmp	#10
+	beq	ipad_print_next_line
+	bcc	ipad_print_end
+	sta	(ipad_ptr),y+
+	bpl	ipad_print_char
+ipad_print_next_line
+	lda	#ipad_COLS
+	add:sta	ipad_ptr
+	bcc	ipad_print_line
+	inc	ipad_ptr+1
+	bne	ipad_print_line
+ipad_print_end
+	rts
+
+ipad_code
+	add	<ipad_screen+18
+	sta	ipad_code_put+1
+	lda	#0
+	adc	>ipad_screen+18
+	sta	ipad_code_put+2
+
+	ldy	#0
+ipad_code_text
+	jsr	ipad_get_text
+	sta	DataMatrix_message,y+
+	cmp	#DataMatrix_EOF
+	bne	ipad_code_text
+	jsr	DataMatrix_code
+
+	lda	<DataMatrix_symbol
+	ldx	>DataMatrix_symbol
+ipad_code_line
+	sta	ipad_code_get1+1
+	stx	ipad_code_get1+2
+	add	#1
+	scc:inx
+	sta	ipad_code_get2+1
+	stx	ipad_code_get2+2
+	add	#DataMatrix_SIZE-1
+	scc:inx
+	sta	ipad_code_get3+1
+	stx	ipad_code_get3+2
+	add	#1
+	scc:inx
+	sta	ipad_code_get4+1
+	stx	ipad_code_get4+2
+	ldx	#0
+	ldy	#0
+ipad_code_char
+	lda	#0
+ipad_code_get1
+	lsr	DataMatrix_symbol,x
+	rol	@
+ipad_code_get2
+	lsr	DataMatrix_symbol,x
+	rol	@
+ipad_code_get3
+	lsr	DataMatrix_symbol,x
+	rol	@
+ipad_code_get4
+	lsr	DataMatrix_symbol,x
+	rol	@
+ipad_code_put
+	sta	ipad_screen,y
+	inx:inx
+	iny
+	cpx	#DataMatrix_SIZE
+	bcc	ipad_code_char
+	lda	#ipad_COLS
+	add:sta	ipad_code_put+1
+	scc:inc	ipad_code_put+2
+	txa	; #DataMatrix_SIZE
+	add	ipad_code_get3+1
+	ldx	ipad_code_get3+2
+	scc:inx
+	cpx	>DataMatrix_symbol+DataMatrix_SIZE*DataMatrix_SIZE
+	bcc	ipad_code_line
+	cmp	<DataMatrix_symbol+DataMatrix_SIZE*DataMatrix_SIZE
+	bcc	ipad_code_line
+	rts
+
+ipad_get_text
+	lda	ipad_text
+	inw	*-2
+	rts
+
+ipad_set_body
+	ldx	>ipad_screen
+	ldy	#0
+ipad_set_body_line
+	sta	ipad_dl_body+1,y
+	txa:sta	ipad_dl_body+2,y
+	lda	ipad_dl_body+1,y
+	add	#ipad_COLS
+	scc:inx
+:3	iny
+	cpy	#ipad_LINES*3
+	bcc	ipad_set_body_line
+	rts
+
+DataMatrix_code
+	icl	'datamatrix.asx'
+
+ipad_semigfx
 :16*8	dta	[[#>>[6-[#&4]/2]]&1]*$f0+[[#>>[5-[#&4]/2]]&1]*$0f
 
 	dta	%00000111
@@ -53,10 +288,7 @@ ipad_font
 	dta	%11111100
 	dta	%11110000
 	dta	%11100000
-
-:[32-20]*8	dta	0
-	ins	'atari8.fnt',0,$200
-	ins	'atari8.fnt',$300,$100
+ipad_semigfx_len	equ	*-ipad_semigfx
 
 ipad_dl
 :13-ipad_LINES/2	dta	$70
@@ -65,6 +297,7 @@ ipad_dl_body
 :ipad_LINES	dta	$42,a(ipad_screen)
 	dta	$42,a(ipad_case+40),2
 	dta	$41,a(ipad_dl)
+	ert	[*^ipad_dl]>>10
 
 ipad_case
 	dta	16
@@ -74,6 +307,7 @@ ipad_case
 	dta	18
 :38	dta	c' '*
 	dta	19
+	ert	[*^ipad_case]>>12
 
 ipad_text
 :7	dta	10
@@ -166,191 +400,16 @@ ipad_keymap
 	dta	0,c' ',0,c'n',0,c'm/',0,c'r',0,c'ey',0,c'twq'
 	dta	c'9',0,c'07',0,c'8',0,0,c'fhd',0,0,c'gsa'
 
-main
-	mwa	#ipad_screen	ipad_ptr
-	ldx	#ipad_LINES
-ipad_clear_line
-	lda	#' '
-	ldy	#0
-ipad_clear_char
-	sta	(ipad_ptr),y
-	iny:cpy	#ipad_COLS
-	bcc	ipad_clear_char
-	lda	#ipad_COLS
-	add:sta	ipad_ptr
-	scc:inc	ipad_ptr+1
-	dex
-	bne	ipad_clear_line
+dl_babka
+	dta	$70,$70,$70,$4e,a(scr_babka)
+:79	dta	$e
+	dta	$4e,a(scr_babka+80*40)
+oczka_ptr	equ	*-2
+:15	dta	$e
+	dta	$4e,a(scr_babka+$f00)
+:95	dta	$e
+	dta	$41,a(dl_babka)
+	ert	[*^dl_babka]>>10
 
-	lda	#0
-	jsr	ipad_print
-	lda	#40
-	jsr	ipad_print
-	lda	#40
-	jsr	ipad_code
-	lda	#80
-	jsr	ipad_print
-	lda	#80
-	jsr	ipad_code
-	lda	#120
-	jsr	ipad_print
-	lda	#120
-	jsr	ipad_code
-	lda	#160
-	jsr	ipad_print
-	lda	#0
-	jsr	ipad_set_body
-
-	sei
-	inc	^4e
-	lda:rne	^4b	; wait for vblk
-	mwa	#ipad_dl	^42
-	mva	>ipad_font	^49
-	mva	#1	^1b	; players/missiles over graphics
-	mva	#4	^1a	; gray background
-	sta	^12	; gray player/missile
-	mva	#0	^17	; black ink
-	mva	#$a	^18	; white paper
-	mva	#$30	^00	; player 0 on the left
-	mva	#$cc	^04	; missile 0 on the right
-	mva	#3	^08	; player 0 = quad width
-	sta	^0c	; missile 0 = quad width
-	mva	#$80	^0d	; player 0 = 10000000
-	mva	#2	^11	; missile 0 = 10
-
-ipad_start
-	mva	#0	ipad_pos
-
-ipad_page
-	ldx	#250
-ipad_wait
-:2	jsr	ipad_frame
-	dex
-	bne	ipad_wait
-
-	mva	#40	ipad_cnt
-ipad_slide
-	inc:lda	ipad_pos
-	jsr	ipad_set_body
-	jsr	ipad_frame
-	dec	ipad_cnt
-	bne	ipad_slide
-
-	lda	ipad_pos
-	cmp	#ipad_COLS-40
-	bcc	ipad_page
-
-	jmp	ipad_start
-
-ipad_frame
-	lda	#60-ipad_LINES*2
-	cmp:rne	^4b
-	mva	#0	^12
-
-	lda	#68+ipad_LINES*2
-	cmp:rne	^4b
-	mva	#4	^12
-	rts
-
-ipad_print
-	add	<ipad_screen+2
-	sta	ipad_ptr
-	lda	#0
-	adc	>ipad_screen+2
-	sta	ipad_ptr+1
-ipad_print_line
-	ldy	#0
-ipad_print_char
-	jsr	ipad_get_text
-	cmp	#10
-	beq	ipad_print_next_line
-	bcc	ipad_print_end
-	sta	(ipad_ptr),y+
-	bpl	ipad_print_char
-ipad_print_next_line
-	lda	#ipad_COLS
-	add:sta	ipad_ptr
-	bcc	ipad_print_line
-	inc	ipad_ptr+1
-	bne	ipad_print_line
-ipad_print_end
-	rts
-
-ipad_code
-	add	<ipad_screen+18
-	sta	ipad_code_address
-	lda	#0
-	adc	>ipad_screen+18
-	sta	ipad_code_address+1
-
-	ldy	#0
-ipad_code_text
-	jsr	ipad_get_text
-	sta	DataMatrix_message,y+
-	cmp	#DataMatrix_EOF
-	bne	ipad_code_text
-	jsr	DataMatrix_code
-
-	mwa	#DataMatrix_symbol	ipad_ptr
-	mva	#DataMatrix_SIZE/2	ipad_cnt
-ipad_code_line
-	ldx	#0
-ipad_code_char
-	txa
-	asl	@
-	tay
-	lda	(ipad_ptr),y
-	lsr	@
-	rol	ipad_char
-	iny
-	lda	(ipad_ptr),y
-	lsr	@
-	rol	ipad_char
-	tya
-	add	#DataMatrix_SIZE-1
-	tay
-	lda	(ipad_ptr),y
-	lsr	@
-	rol	ipad_char
-	iny
-	lda	(ipad_ptr),y
-	lsr	@
-	lda	ipad_char
-	rol	@
-	and	#$f
-	sta	ipad_screen+18,x
-ipad_code_address	equ	*-2
-	inx
-	cpx	#DataMatrix_SIZE/2
-	bcc	ipad_code_char
-	lda	#2*DataMatrix_SIZE
-	add:sta	ipad_ptr
-	scc:inc	ipad_ptr+1
-	lda	#ipad_COLS
-	add:sta	ipad_code_address
-	scc:inc	ipad_code_address+1
-	dec	ipad_cnt
-	bne	ipad_code_line
-	rts
-
-ipad_get_text
-	lda	ipad_text
-	inw	*-2
-	rts
-
-ipad_set_body
-	ldx	>ipad_screen
-	ldy	#0
-ipad_set_body_line
-	sta	ipad_dl_body+1,y
-	txa:sta	ipad_dl_body+2,y
-	lda	ipad_dl_body+1,y
-	add	#ipad_COLS
-	scc:inx
-:3	iny
-	cpy	#ipad_LINES*3
-	bcc	ipad_set_body_line
-	rts
-
-	run	main
+	icl	'mahna.asx'
 	end

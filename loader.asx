@@ -1,0 +1,160 @@
+	org	$3ec0
+check
+	sei:inc	^4e
+
+; check for PAL ANTIC
+	lda:rne	^4b
+	lda	#130
+	cmp:rne	^4b
+:3	sta	^4a
+	lda	^4b
+	bpl	requirements_not_met
+
+; check for 64k+ XL/XE
+	mva	#$fe	^31
+	lda:inc	$fffc
+	cmp	$fffc
+	beq	requirements_not_met
+
+; check for 128+K RAM
+	mvy	#$ff	$4000
+	mva	#$e3	^31
+	sta	$4000
+	mva	#$ff	^31
+	cpy	$4000
+	bne	requirements_not_met
+
+	lda	<loading_dl
+check_message
+	sta	$230
+	mva	>loading_dl	$231
+enable_os
+	mva	#$ff	^31
+	lsr:cli	^4e
+	lda	20
+	cmp:req	20
+	rts
+
+requirements_not_met
+	lda	<requirements_dl
+	ert	>requirements_dl!=>loading_dl
+	jsr	check_message
+	jmp	*
+
+inflate_rom
+	sei:inc	^4e
+	inc	^40
+	mva	#$fe	^31
+	jsr	inflate
+	ldx	#$ff
+	jmp	enable_os
+
+requirements_dl
+:9	dta	$70
+	dta	$47,a(requirements_text),7,$70,7,7,7,$41,a(requirements_dl)
+loading_dl
+:14	dta	$70
+	dta	$47,a(loading_text),$41,a(loading_dl)
+
+requirements_text
+	dta	d" I'M SORRY, MINIMUM "
+	dta	d' REQUIREMENTS ARE:  '
+	dta	d' * ATARI XL/XE      '
+	dta	d' * PAL              '
+	dta	d' * 128K RAM         '
+loading_text
+	dta	d' LOADING ['
+progress_text
+	dta	d'.......]  '
+
+	ert	*>$4000
+	ini	check
+
+inflate	equ	$9f00
+inflate_data	equ	$9c00
+inflate_zp	equ	$f0
+
+	icl	'inflate.asx'
+
+	org	^31
+	dta	$e3
+	org	$7700
+smp0_dfl
+	ins	'mahna.smp.0.dfl'
+	ert	*>inflate_data
+	org	inflate_zp
+	dta	a(smp0_dfl,$4000)
+	ini	inflate
+	org	progress_text
+	dta	d'#'
+
+	org	^31
+	dta	$e7
+	org	$7b00
+smp1_dfl
+	ins	'mahna.smp.1.dfl'
+	ert	*>inflate_data
+	org	inflate_zp
+	dta	a(smp1_dfl,$4000)
+	ini	inflate
+	org	progress_text+1
+	dta	d'#'
+
+	org	^31
+	dta	$eb
+	org	$8200
+smp2_dfl
+	ins	'mahna.smp.2.dfl'
+	ert	*>inflate_data
+	org	inflate_zp
+	dta	a(smp2_dfl,$4000)
+	ini	inflate
+	org	progress_text+2
+	dta	d'#'
+
+	org	^31
+	dta	$ef
+	org	$7400
+smp3_dfl
+	ins	'mahna.smp.3.dfl'
+	ert	*>inflate_data
+	org	inflate_zp
+	dta	a(smp3_dfl,$4000)
+	ini	inflate
+	org	progress_text+3
+	dta	d'#'
+
+	org	^31
+	dta	$ff
+	org	$6c00
+smp4_dfl
+	ins	'mahna.smp.4.dfl'
+	ert	*>inflate_data
+	org	inflate_zp
+	dta	a(smp4_dfl,$4000)
+	ini	inflate
+	org	progress_text+4
+	dta	d'#'
+
+	org	$a100
+bank_dfl
+	ins	'bank.dfl'
+	ert	*>$c000
+	org	inflate_zp
+	dta	a(bank_dfl,$d800)
+	ini	inflate_rom
+	org	progress_text+5
+	dta	d'#'
+
+	org	$2000
+ipad_dfl
+	ins	'ipad.dfl'
+	ins	'karate.dfl'
+	ert	*>enable_os
+	org	inflate_zp
+	dta	a(ipad_dfl,$a100)
+	ini	inflate_rom
+
+	run	$bf04
+
+	end
