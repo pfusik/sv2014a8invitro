@@ -2,7 +2,11 @@ DataMatrix_SIZE	equ	40
 
 ipad_SCREENS	equ	5
 ipad_COLS	equ	ipad_SCREENS*40
+ipad_ENTRY	equ	4*40
 ipad_LINES	equ	DataMatrix_SIZE/2
+ipad_screen_nick	equ	ipad_screen+9*ipad_COLS+ipad_ENTRY+2
+
+nick_MAX	equ	14
 
 DataMatrix_data	equ	$2400
 ipad_font	equ	$2c00
@@ -38,12 +42,18 @@ loop
 	jmp	loop
 
 ipad
+	lda	^29
+	asl	@
+	cmp	#[$40+$1c]*2
+	sne:rts
 	ldx	#29
 	lda	#0
 	sta:rpl	^00,x-
 	ldx	#ipad_semigfx_len
 	mva:rne	ipad_semigfx-1,x	ipad_font-1,x-
 	mva	#$ff	^31
+	ldx	#16
+	mva:rne	$e2f0-1,x	ipad_font+$f0-1,x-
 ipad_init_font
 	mva	$e000,x	ipad_font+$100,x
 	mva	$e100,x	ipad_font+$200,x
@@ -68,23 +78,18 @@ ipad_clear_char
 	bne	ipad_clear_line
 
 	mwa	#ipad_text	ipad_get_text+1
-	lda	#0
+	mva	#0	ipad_pos
 	jsr	ipad_print
 	lda	#40
-	jsr	ipad_print
-	lda	#40
-	jsr	ipad_code
+	jsr	ipad_print_code
 	lda	#80
-	jsr	ipad_print
-	lda	#80
-	jsr	ipad_code
+	jsr	ipad_print_code
 	lda	#120
-	jsr	ipad_print
-	lda	#120
-	jsr	ipad_code
+	jsr	ipad_print_code
 	lda	#160
 	jsr	ipad_print
-	lda	#0
+	lda	nick_len
+	seq:jsr	mail_compose
 	jsr	ipad_set_body
 
 	lda:rne	^4b	; wait for vblk
@@ -102,40 +107,111 @@ ipad_clear_char
 	sta	^0c	; missile 0 = quad width
 	mva	#$80	^0d	; player 0 = 10000000
 	mva	#2	^11	; missile 0 = 10
+	mwa	#ipad_dli	$fffa
+	mva	#$80	^4e
 
-ipad_start
-	mva	#0	ipad_pos
+ipad_loop
+	lda	20
+	cmp:req	20
+	bit	^2e
+	bvs	ipad_loop
+	mva	#0	^2e
+	mva	#$40	^2e
+	lda	^29
+	and	#$7f
 
-ipad_page
-	ldx	#250
-ipad_wait
-:2	jsr	ipad_frame
-	dex
-	bne	ipad_wait
-
-	mva	#40	ipad_cnt
-ipad_slide
-	inc:lda	ipad_pos
-	jsr	ipad_set_body
-	jsr	ipad_frame
-	dec	ipad_cnt
-	bne	ipad_slide
-
+	cmp	#6
+	bne	ipad_no_left
 	lda	ipad_pos
-	cmp	#ipad_COLS-40
-	bcc	ipad_page
+	beq	ipad_loop
+	mva	#40	ipad_cnt
+ipad_slide_left
+	dec	ipad_pos
+	jsr	ipad_slide
+	bne	ipad_slide_left
+	beq	ipad_loop	; jmp
+ipad_no_left
 
+	cmp	#7
+	bne	ipad_no_right
+	lda	ipad_pos
+	cmp	#[ipad_SCREENS-1]*40
+	bcs	ipad_loop
+	mva	#40	ipad_cnt
+ipad_slide_right
+	inc	ipad_pos
+	jsr	ipad_slide
+	bne	ipad_slide_right
+	beq	ipad_loop	; jmp
+
+ipad_no_right
+	tax
+	and	#$3f
+	cmp	#$1c
+	beq	ipad_exit
+	ldy	ipad_pos
+	cpy	#ipad_ENTRY
+	bne	ipad_loop
+	ldy	nick_len
+	beq	nick_no_bsp
+	cmp	#$34
+	bne	nick_no_bsp
+	mva	#' '	ipad_nick,y-
+	bpl	mail_modify	; jmp
+nick_no_bsp
+	cpy	#nick_MAX
+	bcs	ipad_loop
+	lda	ipad_keymap,x
+	beq	ipad_loop
+	sta	ipad_nick,y+
+mail_modify
+	sty	nick_len
+	mva	#' '+$80	ipad_nick,y
+	jsr	mail_compose
+	jmp	ipad_loop
+
+ipad_exit
 	rts
 
-ipad_frame
-	lda	#60-ipad_LINES*2
-	cmp:rne	^4b
-	mva	#0	^12
-
-	lda	#68+ipad_LINES*2
-	cmp:rne	^4b
-	mva	#4	^12
+ipad_slide
+	jsr	ipad_set_body
+	lda	20
+	cmp:req	20
+	dec	ipad_cnt
 	rts
+
+ipad_dli
+	pha
+	lda	#0
+	bit	^4b
+	bvc	ipad_dli_1
+	inc	20
+	lda	#4
+ipad_dli_1
+	sta	^4a
+	sta	^12
+	pla
+	rti
+
+mail_compose
+	mwa	#ipad_screen+ipad_ENTRY+18	ipad_code_put+1
+	ldy	#mail_continued-mail_url
+	mva:rne	mail_url-1,y	DataMatrix_message-1,y-
+	beq	mail_nick_1	; jmp
+mail_nick
+	cmp	#' '
+	sne:lda	#'+'
+	sta	DataMatrix_message+mail_continued-mail_url,y+
+mail_nick_1
+	mva	ipad_nick,y	ipad_screen_nick,y
+	bpl	mail_nick
+	mva	#' '	ipad_screen_nick+1,y
+	ldx	#0
+mail_continue
+	mva	mail_continued,x+	DataMatrix_message+mail_continued-mail_url,y+
+	cmp	#DataMatrix_EOF
+	bne	mail_continue
+	beq	ipad_code_1	; jmp
 
 ipad_print
 	add	<ipad_screen+2
@@ -161,6 +237,10 @@ ipad_print_next_line
 ipad_print_end
 	rts
 
+ipad_print_code
+	pha
+	jsr	ipad_print
+	pla
 ipad_code
 	add	<ipad_screen+18
 	sta	ipad_code_put+1
@@ -174,6 +254,8 @@ ipad_code_text
 	sta	DataMatrix_message,y+
 	cmp	#DataMatrix_EOF
 	bne	ipad_code_text
+
+ipad_code_1
 	jsr	DataMatrix_code
 
 	lda	<DataMatrix_symbol
@@ -196,10 +278,8 @@ ipad_code_line
 	ldx	#0
 	ldy	#0
 ipad_code_char
-	lda	#0
 ipad_code_get1
-	lsr	DataMatrix_symbol,x
-	rol	@
+	lda	DataMatrix_symbol,x
 ipad_code_get2
 	lsr	DataMatrix_symbol,x
 	rol	@
@@ -234,6 +314,7 @@ ipad_get_text
 	rts
 
 ipad_set_body
+	lda	ipad_pos
 	ldx	>ipad_screen
 	ldy	#0
 ipad_set_body_line
@@ -292,10 +373,10 @@ ipad_semigfx_len	equ	*-ipad_semigfx
 
 ipad_dl
 :13-ipad_LINES/2	dta	$70
-	dta	$42,a(ipad_case),2
+	dta	$c2,a(ipad_case),2
 ipad_dl_body
 :ipad_LINES	dta	$42,a(ipad_screen)
-	dta	$42,a(ipad_case+40),2
+	dta	$c2,a(ipad_case+40),2
 	dta	$41,a(ipad_dl)
 	ert	[*^ipad_dl]>>10
 
@@ -310,13 +391,15 @@ ipad_case
 	ert	[*^ipad_case]>>12
 
 ipad_text
-:7	dta	10
+:5	dta	10
 	dta	c'          We invite you to',10
 	dta	10
-	dta	c'          ',c' Silly Venture '*,10
+	dta	c'         ',c'  Silly Venture  '*,10
 	dta	10
 	dta	c'       The biggest Atari-only',10
-	dta	c'      demoscene event in 2014.',0
+	dta	c'      demoscene event in 2014.',10
+:6	dta	10
+	dta	c'   Press ',$1e,c' and ',$1f,c' to switch pages',0
 
 :3	dta	10
 	dta	c' WHERE '*,10
@@ -358,8 +441,8 @@ code2
 	dta	c'DTSTART:',129+20,129+14,129+12,129+05,c'T',129+07,129+00,129+00,10
 	dta	c'DTEND:',129+20,129+14,129+12,129+07,c'T',129+16,129+00,129+00,10
 	els
-	dta	c'DTSTART:20141205T120000',10
-	dta	c'DTEND:20141207T120000',10
+	dta	c'DTSTART:20141205T070000',10
+	dta	c'DTEND:20141207T160000',10
 	eif
 	dta	c'END:VEVENT',10,DataMatrix_EOF
 	ert	*-code2>DataMatrix_DATA_CODEWORDS
@@ -386,30 +469,33 @@ code2
 	dta	c'attendance.',10
 	dta	c'Type your',10
 	dta	c'nickname here:',10
-	dta	c' '*,10
+ipad_nick
+	dta	c' '*
+:nick_MAX	dta	c' '
+	dta	10
 :2	dta	10
 	dta	c'Scan the',10
 	dta	c'generated code',10
 	dta	c'and use it to',10
-	dta	c'send email.',0
-	dta	c'mailto:atari@sillyventure.eu?subject=I%27m+coming+to+SV&body=I%27m++and+I+will+be+at+Silly+Venture%21',DataMatrix_EOF
+	dta	c'send email.',10
+	dta	10
+	dta	c'Then press Esc.',0
+mail_url
+	dta	c'mailto:atari@sillyventure.eu?subject=I%27m+coming+to+SV&body=I%27m+'
+mail_continued
+	dta	c'+and+I+will+be+at+Silly+Venture%21',DataMatrix_EOF
 
 ipad_keymap
 	dta	c'lj',0,0,0,c'k',0,0,c'o',0,c'pu',0,c'i-',0
 	dta	c'v',0,c'c',0,0,c'bxz4',0,c'36',0,c'521'
 	dta	0,c' ',0,c'n',0,c'm/',0,c'r',0,c'ey',0,c'twq'
 	dta	c'9',0,c'07',0,c'8',0,0,c'fhd',0,0,c'gsa'
-
-dl_babka
-	dta	$70,$70,$70,$4e,a(scr_babka)
-:79	dta	$e
-	dta	$4e,a(scr_babka+80*40)
-oczka_ptr	equ	*-2
-:15	dta	$e
-	dta	$4e,a(scr_babka+$f00)
-:95	dta	$e
-	dta	$41,a(dl_babka)
-	ert	[*^dl_babka]>>10
+	dta	c'LJ',0,0,0,c'K',0,0,c'O',0,c'PU',0,c'I_',0
+	dta	c'V',0,c'C',0,0,c'BXZ',0,0,0,0,0,0,0,0
+	dta	0,c' ',0,c'N',0,c'M',0,0,c'R',0,c'EY',0,c'TWQ'
+	dta	0,0,0,0,0,0,0,0,c'FHD',0,0,c'GSA'
+nick_len
+	dta	0
 
 	icl	'mahna.asx'
 	end

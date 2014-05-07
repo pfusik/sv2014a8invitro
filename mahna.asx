@@ -31,7 +31,7 @@ omen
 	ldx	#29
 	sta:rpl	^00,x-
 	mwa	#$d800	inflate_zp
-	mwa	#$8f8	inflate_zp+2
+	mwa	#$82c	inflate_zp+2
 	jsr	inflate
 
 	lda:rne	^4b
@@ -54,9 +54,11 @@ show_omen_babka
 show_omen_1
 	stx	show_geba_lda+1
 	sta	show_geba_lda+2
-	mwa	#scr_omen+$1861-$10	show_geba_sta+1
+	mva	>scr_omen+$1861-$10	show_geba_sta+2
+	lda	<scr_omen+$1861-$10
 	ldx	#35
 show_geba_line
+	sta	show_geba_sta+1
 	ldy	#4
 show_geba_lda
 show_geba_sta	equ	*+3
@@ -65,7 +67,7 @@ show_geba_sta	equ	*+3
 	add:sta	show_geba_lda+1
 	scc:inc	show_geba_lda+2
 	lda	#40
-	add:sta	show_geba_sta+1
+	add	show_geba_sta+1
 	scc:inc	show_geba_sta+2
 	dex
 	bne	show_geba_line
@@ -101,9 +103,11 @@ show_babka_1
 cmoki_lda	lda	cmoki
 	sne:rts
 	pha
-	mwa	#scr_babka+$13fa-$10	show_cmok_sta+1
+	mva	>scr_babka+$13fa-$10	show_cmok_sta+2
+	lda	<scr_babka+$13fa-$10
 	ldx	#22
 show_cmok_line
+	sta	show_cmok_sta+1
 	ldy	#2
 show_cmok_lda
 show_cmok_sta	equ	*+3
@@ -112,7 +116,7 @@ show_cmok_sta	equ	*+3
 	add:sta	show_cmok_lda+1
 	scc:inc	show_cmok_lda+2
 	lda	#40
-	add:sta	show_cmok_sta+1
+	add	show_cmok_sta+1
 	scc:inc	show_cmok_sta+2
 	dex
 	bne	show_cmok_line
@@ -176,10 +180,8 @@ show_guy_babes
 	ldx	#19
 	ldy	#4-1
 	jsr	show_cols
-	lda	smp_ptr+1
-	add	#20
-	tax
-	jsr:rne	play_sample_frame
+	lda	#20
+	jsr	play_sample
 ; babes
 	lda	<col_babe1
 	ldx	#2
@@ -193,10 +195,8 @@ show_guy_babes
 	ldx	#6
 	ldy	#4-1
 	jsr	show_babes
-	lda	smp_ptr+1
-	add	#30
-	tax
-	jsr:rne	play_sample_frame
+	lda	#30
+	jsr	play_sample
 ; hide guy
 	lda	<col_guy2+2
 	ldx	#19
@@ -211,9 +211,7 @@ show_guy_babes
 	ldy	#8-1
 	jsr	show_cols
 	pla
-	add	smp_ptr+1
-	tax
-	jsr:rne	play_sample_frame
+	jsr	play_sample
 ; hide babes
 	lda	<col_babe2+2
 	ldx	#6
@@ -227,25 +225,18 @@ show_guy_babes
 	ldx	#2
 	ldy	#8-1
 	jsr	show_babes
-	lda	smp_ptr+1
-	add	#4
-	tax
-	jsr:rne	play_sample_frame
-	rts
+	lda	#4
+	jmp	play_sample
 
 show_babes_frame
 	jsr	show_babes
-	ldx	smp_ptr+1
-	inx
-	jsr:rne	play_sample_frame
-	rts
+	lda	#1
+	jmp	play_sample
 
 show_cols_frame
 	jsr	show_cols
-	ldx	smp_ptr+1
-	inx
-	jsr:rne	play_sample_frame
-	rts
+	lda	#1
+	jmp	play_sample
 
 show_babes
 	jsr	show_cols
@@ -285,10 +276,8 @@ show_cols_sta
 ; ------------
 
 karate
-	mva	#0	^40
-
 	lda	#$ff
-	ldx	#0
+	mvx	#0	^40
 	ldy	>scr_arena
 cls_karateki_1
 	sty	cls_karateki_2+2
@@ -326,13 +315,13 @@ pmg_karateki_2
 	ldx	#$1d
 	mva:rpl	karate_gtia,x	^00,x-
 
-	ldx	#200
+	ldx	#100
 	jsr	wait
 	jsr	start_sample
 :2	jsr	show_karateki_default
 	lda	#126
 	jsr	show_karateki
-	ldx	#80
+	ldx	#30
 	jmp	wait
 
 show_karateki_default
@@ -347,19 +336,15 @@ show_karateki
 	lda	#col_gada
 	ldx	#17
 	jsr	show_karate
-	lda	smp_ptr+1
-	add	#20
-	tax
-	jsr:rne	play_sample_frame
+	lda	#20
+	jsr	play_sample
 ; tutu
 	lda	#col_odwr
 	jsr	show_karate2_frame
 	lda	#col_gada
 	jsr	show_karate2
-	lda	smp_ptr+1
-	add	#30
-	tax
-	jsr:rne	play_sample_frame
+	lda	#30
+	jsr	play_sample
 ; stop center
 	lda	#col_odwr
 	ldx	#17
@@ -391,25 +376,18 @@ show_karateki_3
 	jsr	show_karate2_frame
 	lda	#col_stoi
 	jsr	show_karate2
-	lda	smp_ptr+1
-	add	#4
-	tax
-	jsr:rne	play_sample_frame
-	rts
+	lda	#4
+	jmp	play_sample
 
 show_karate2_frame
 	jsr	show_karate2
-	ldx	smp_ptr+1
-	inx
-	jsr:rne	play_sample_frame
-	rts
+	lda	#1
+	jmp	play_sample
 
 show_karate_frame
 	jsr	show_karate
-	ldx	smp_ptr+1
-	inx
-	jsr:rne	play_sample_frame
-	rts
+	lda	#1
+	jmp	play_sample
 
 show_karate2
 	pha
@@ -479,6 +457,12 @@ start_sample
 	mva	#{bpl}	play_sample_bpl
 	rts
 
+play_sample
+	add	smp_ptr+1
+	tax
+	jsr:rne	play_sample_frame
+	rts
+
 play_sample_frame
 play_sample_2lines
 	lda	(smp_ptr),0
@@ -520,6 +504,8 @@ play_sample_same
 	
 sample_banks
 	dta	$e2,$e6,$ea,$ee,$fe
+
+	ert	*>$d000
 
 	opt	o-
 	icl	'karate.asx'

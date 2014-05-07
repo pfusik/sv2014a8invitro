@@ -1,7 +1,18 @@
 scr_babka	equ	$a100
 
 	opt	h-
-	org	$8f8
+	org	$82c
+dl_babka
+	dta	$70,$70,$70,$4e,a(scr_babka)
+:79	dta	$e
+	dta	$4e,a(scr_babka+80*40)
+oczka_ptr	equ	*-2
+:15	dta	$e
+	dta	$4e,a(scr_babka+$f00)
+:95	dta	$e
+	dta	$41,a(dl_babka)
+
+	ert	*!=$8f8
 scr_galy
 	ins	'dasgaly.mic',0,400
 scr_geba
