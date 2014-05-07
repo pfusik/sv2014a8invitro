@@ -195,20 +195,20 @@ ipad_dli_1
 
 mail_compose
 	mwa	#ipad_screen+ipad_ENTRY+18	ipad_code_put+1
-	ldy	#mail_continued-mail_url
-	mva:rne	mail_url-1,y	DataMatrix_message-1,y-
+	ldy	#mail_continued-code4
+	mva:rne	code4-1,y	DataMatrix_message-1,y-
 	beq	mail_nick_1	; jmp
 mail_nick
 	cmp	#' '
 	sne:lda	#'+'
-	sta	DataMatrix_message+mail_continued-mail_url,y+
+	sta	DataMatrix_message+mail_continued-code4,y+
 mail_nick_1
 	mva	ipad_nick,y	ipad_screen_nick,y
 	bpl	mail_nick
 	mva	#' '	ipad_screen_nick+1,y
 	ldx	#0
 mail_continue
-	mva	mail_continued,x+	DataMatrix_message+mail_continued-mail_url,y+
+	mva	mail_continued,x+	DataMatrix_message+mail_continued-code4,y+
 	cmp	#DataMatrix_EOF
 	bne	mail_continue
 	beq	ipad_code_1	; jmp
@@ -414,8 +414,9 @@ ipad_text
 	dta	c'Scan this code',10
 	dta	c'for a Google',10
 	dta	c'Maps link. :)',0
-
+code1
 	dta	c'https://maps.google.com/maps?q=Szko%C5%82a+Podstawowa+nr+65,+%C5%9Aluza,+Gda%C5%84sk,+Polska',DataMatrix_EOF
+	ert	*-code1>DataMatrix_DATA_CODEWORDS
 
 :2	dta	10
 	dta	c' WHEN '*,10
@@ -458,8 +459,9 @@ code2
 	dta	c'Too lazy to',10
 	dta	c'type this link?',10
 	dta	c'Scan it!',0
-
+code3
 	dta	c'http://sillyventure.eu/',DataMatrix_EOF
+	ert	*-code3>DataMatrix_DATA_CODEWORDS
 
 :2	dta	10
 	dta	c' YOU '*,10
@@ -480,10 +482,11 @@ ipad_nick
 	dta	c'send email.',10
 	dta	10
 	dta	c'Then press Esc.',0
-mail_url
-	dta	c'mailto:atari@sillyventure.eu?subject=I%27m+coming+to+SV&body=I%27m+'
+code4
+	dta	c'mailto:atari@sillyventure.eu?subject=I%',129+27,c'm+coming+to+SV&body=I%',129+27,c'm+'
 mail_continued
-	dta	c'+and+I+will+be+at+Silly+Venture%21',DataMatrix_EOF
+	dta	c'+and+I+will+be+at+Silly+Venture%',129+21,DataMatrix_EOF
+	ert	*-code4+nick_MAX>DataMatrix_DATA_CODEWORDS
 
 ipad_keymap
 	dta	c'lj',0,0,0,c'k',0,0,c'o',0,c'pu',0,c'i-',0
