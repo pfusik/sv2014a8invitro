@@ -18,6 +18,7 @@ ipad_ptr	equ	$80
 ipad_char	equ	$82
 ipad_cnt	equ	$83
 ipad_pos	equ	$84
+ipad_key	equ	$85
 
 	opt	h-
 	org	$a100
@@ -81,6 +82,7 @@ ipad_clear_char
 
 	mwa	#ipad_text	ipad_get_text+1
 	mva	#0	ipad_pos
+	sta	ipad_key
 	jsr	ipad_print
 	lda	#40
 	jsr	ipad_print_code
@@ -111,16 +113,20 @@ ipad_clear_char
 	mva	#2	^11	; missile 0 = 10
 	mwa	#ipad_dli	$fffa
 	mva	#$80	^4e
+	mwa	#ipad_irq	$fffe
+	mva	#$40	^2e
+	cli
 
 ipad_loop
 	lda	20
 	cmp:req	20
-	bit	^2e
-	bvs	ipad_loop
-	mva	#0	^2e
-	mva	#$40	^2e
-	lda	^29
-	and	#$7f
+	ldx	#0
+	lda:stx	ipad_key
+
+	bpl	ipad_no_type
+	jsr	mail_compose
+	jmp	ipad_loop
+ipad_no_type
 
 	cmp	#6
 	bne	ipad_no_left
@@ -145,34 +151,12 @@ ipad_slide_right
 	jsr	ipad_slide
 	bne	ipad_slide_right
 	beq	ipad_loop	; jmp
-
 ipad_no_right
-	tax
+
 	and	#$3f
 	cmp	#$1c
-	beq	ipad_exit
-	ldy	ipad_pos
-	cpy	#ipad_ENTRY
 	bne	ipad_loop
-	ldy	nick_len
-	beq	nick_no_bsp
-	cmp	#$34
-	bne	nick_no_bsp
-	mva	#' '	ipad_nick,y-
-	bpl	mail_modify	; jmp
-nick_no_bsp
-	cpy	#nick_MAX
-	bcs	ipad_loop
-	lda	ipad_keymap,x
-	beq	ipad_loop
-	sta	ipad_nick,y+
-mail_modify
-	sty	nick_len
-	mva	#' '+$80	ipad_nick,y
-	jsr	mail_compose
-	jmp	ipad_loop
-
-ipad_exit
+	sei
 	rts
 
 ipad_slide
@@ -181,6 +165,46 @@ ipad_slide
 	cmp:req	20
 	dec	ipad_cnt
 	rts
+
+ipad_irq
+	bit	^2e
+	bvs	ipad_rti
+	pha
+	txa:pha
+	mva	#0	^2e
+	mva	#$40	^2e
+	lda	^29
+	and	#$7f
+	cmp	#$34
+	beq	ipad_bsp
+	sta	ipad_key
+	ldx	ipad_pos
+	cpx	#ipad_ENTRY
+	bne	ipad_no_key
+	tax
+	lda	ipad_keymap,x
+	beq	ipad_no_key
+	ldx	nick_len
+	cpx	#nick_MAX
+	bcs	ipad_no_key
+	sta	ipad_screen_nick,x
+	sta	ipad_nick,x+
+ipad_type
+	stx	nick_len
+	mva	#' '+$80	ipad_screen_nick,x
+	sta	ipad_nick,x
+	sta	ipad_key
+ipad_no_key
+	pla:tax
+	pla
+ipad_rti
+	rti
+ipad_bsp
+	ldx	nick_len
+	beq	ipad_no_key
+	mva	#' '	ipad_screen_nick,x
+	sta	ipad_nick,x-
+	bpl	ipad_type	; jmp
 
 ipad_dli
 	pha
@@ -207,9 +231,8 @@ mail_nick
 	eif
 	sta	DataMatrix_message+mail_continued-code4,y+
 mail_nick_1
-	mva	ipad_nick,y	ipad_screen_nick,y
+	lda	ipad_nick,y
 	bpl	mail_nick
-	mva	#' '	ipad_screen_nick+1,y
 	ldx	#0
 mail_continue
 	mva	mail_continued,x+	DataMatrix_message+mail_continued-code4,y+
