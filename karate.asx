@@ -25,7 +25,18 @@ karate_gtia
 	dta	$0e,$36,$88,0
 	dta	$3a,$00,$06,0,$00
 	dta	4,0,2
+mul16
+:5	dta	#<<4
 twarz_karate
-:100	dta	[#>>2]&3
+; 4*256 sample bytes = 2048 samples = 0.13 sec
+; one value = 4*156 samples
+	dta	1,1,0,1,1,0	; 0.00 mana mana
+	dta	1,0,1,1,1,0,1,0,1,1,0,0,0	; 0.80 tu tu
+	dta	0,1,1,0,1,0,0	; 2.70 mana mana
+	dta	0,1,0,1,0,1,0,1,0,2,2,0,0	; 3.40 tu tu
+	dta	0,1,1,0,3,0	; 5.20 mana mana
+	dta	1,0,1,1,1,0,1,0,1,1,0,1,0
+	dta	1,0,1,1,0,1,0,0,1,0,1,0,1
+	dta	0,1,0,1,0,1,2,3,1,1,1,0
 
 	end

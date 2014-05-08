@@ -39,8 +39,8 @@ omen
 	mwa	#dl_omen	^42
 	mwa	#colors_omen	colors_ptr
 	jsr	fade_in
-	ldx	#200
-	jsr	wait
+	ldx	#250
+	jsr	wait_first
 	jsr	start_sample
 	mva	<cmoki-1	cmoki_lda+1
 :2	jsr	show_omen_babka
@@ -154,7 +154,7 @@ bank
 	mwa	#colors_bank	colors_ptr
 	jsr	fade_in
 	ldx	#80
-	jsr	wait
+	jsr	wait_first
 	mva	colors_bank+1	^16
 	mva	colors_bank+2	^17
 	mva	colors_bank+3	^18
@@ -316,7 +316,7 @@ pmg_karateki_2
 	mva:rpl	karate_gtia,x	^00,x-
 
 	ldx	#100
-	jsr	wait
+	jsr	wait_first
 	jsr	start_sample
 :2	jsr	show_karateki_default
 	lda	#126
@@ -337,14 +337,21 @@ show_karateki
 	ldx	#17
 	jsr	show_karate
 	lda	#20
-	jsr	play_sample
+	add	smp_ptr+1
+	tax
+karate_mahna
+	jsr	karate_face
+	sty	scr_arena+9*40+17+2
+	sta	scr_arena+4*40+17+2
+	jsr	play_sample_frame
+	bne	karate_mahna
 ; tutu
 	lda	#col_odwr
 	jsr	show_karate2_frame
 	lda	#col_gada
 	jsr	show_karate2
 	lda	#30
-	jsr	play_sample
+	jsr	karate_sing
 ; stop center
 	lda	#col_odwr
 	ldx	#17
@@ -353,24 +360,7 @@ show_karateki
 	ldx	#17
 	jsr	show_karate
 	pla
-	add	smp_ptr+1
-	tax
-show_karateki_3
-	ldy	smp_ptr+1
-	lda	twarz_karate-$40,y
-	lsr	@
-	lda	#~$aa
-	scc:lda	#~$a6
-	sta	scr_arena+9*40+2+2
-	sta	scr_arena+9*40+32+2
-	lda	twarz_karate-$40,y
-:2	lsr	@
-	lda	#~$95
-	scc:lda	#~$aa
-	sta	scr_arena+4*40+2+2
-	sta	scr_arena+4*40+32+2
-	jsr	play_sample_frame
-	bne	show_karateki_3
+	jsr	karate_sing
 ; stop sides
 	lda	#col_odwr
 	jsr	show_karate2_frame
@@ -416,6 +406,34 @@ show_karate_sta	equ	*+3
 	bne	show_karate_line
 	rts
 
+karate_sing
+	add	smp_ptr+1
+	tax
+karate_sing_1
+	jsr	karate_face
+	sty	scr_arena+9*40+2+2
+	sty	scr_arena+9*40+32+2
+	sta	scr_arena+4*40+2+2
+	sta	scr_arena+4*40+32+2
+	jsr	play_sample_frame
+	bne	karate_sing_1
+	rts
+
+karate_face
+	lda	smp_ptr+1
+:2	lsr	@
+	ldy	smp_bank
+	add	mul16,y
+	tay
+	lda	twarz_karate-$10,y
+	lsr	@
+	ldy	#~$aa
+	scc:ldy	#~$a6
+	lsr	@
+	lda	#~$95
+	scc:lda	#~$aa
+	rts
+
 ; ------------
 
 fade_in
@@ -443,6 +461,8 @@ fade_1
 	bne	fade_1
 	rts
 
+wait_first
+	cpx	#1
 wait
 	lda:req	^4b
 	lda:rne	^4b

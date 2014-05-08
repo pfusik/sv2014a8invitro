@@ -42,6 +42,7 @@ loop
 	jsr	ipad
 	jsr	karate
 	jsr	ipad
+	mva	#{ldx #}	wait_first
 	jmp	loop
 
 ipad
