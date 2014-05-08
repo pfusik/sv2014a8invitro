@@ -51,7 +51,7 @@ ipad
 	cmp	#[$40+$1c]*2
 	sne:rts
 	ldx	#29
-	lda	#0
+	mva	#0	^40
 	sta:rpl	^00,x-
 	ldx	#ipad_semigfx_len
 	mva:rne	ipad_semigfx-1,x	ipad_font-1,x-
