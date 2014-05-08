@@ -1,3 +1,5 @@
+mail_URLENCODE	equ	0
+
 DataMatrix_SIZE	equ	40
 
 ipad_SCREENS	equ	5
@@ -199,8 +201,10 @@ mail_compose
 	mva:rne	code4-1,y	DataMatrix_message-1,y-
 	beq	mail_nick_1	; jmp
 mail_nick
+	ift	mail_URLENCODE
 	cmp	#' '
 	sne:lda	#'+'
+	eif
 	sta	DataMatrix_message+mail_continued-code4,y+
 mail_nick_1
 	mva	ipad_nick,y	ipad_screen_nick,y
@@ -483,9 +487,12 @@ ipad_nick
 	dta	10
 	dta	c'Then press Esc.',0
 code4
-	dta	c'mailto:atari@sillyventure.eu?subject=I%',129+27,c'm+coming+to+SV&body=I%',129+27,c'm+'
+	dta	c'mailto:atari@sillyventure.eu?subject='
+:mail_URLENCODE	dta	c'I%',129+27,c'm+coming+to+SV&body=I%',129+27,c'm+'
+:!mail_URLENCODE	dta	c"I'm coming to SV&body=I'm "
 mail_continued
-	dta	c'+and+I+will+be+at+Silly+Venture%',129+21,DataMatrix_EOF
+:mail_URLENCODE	dta	c'+and+I+will+be+at+Silly+Venture%',129+21,DataMatrix_EOF
+:!mail_URLENCODE	dta	c' and I will be at Silly Venture!',DataMatrix_EOF
 	ert	*-code4+nick_MAX>DataMatrix_DATA_CODEWORDS
 
 ipad_keymap
