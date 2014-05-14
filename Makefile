@@ -52,7 +52,7 @@ karate.mic: karateki.exe ik6800.bin
 clean:
 	$(RM) sv2014in.xex mahna.smp.0.dfl mahna.smp.1.dfl mahna.smp.2.dfl mahna.smp.3.dfl mahna.smp.4.dfl bank.dfl ipad.dfl karate.dfl dasomen.dfl \
 		bank.bin ipad.bin karate.bin dasomen.bin loader.lst bank.lst ipad.lst karate.lst dasomen.lst \
-		mahna.smp bank.mic bankier??.mic bank.exe karate.mic karate??.mic karate??.bin karateki.exe
+		mahna.smp wav2smp.exe bank.mic bank.exe bankier??.mic bankowcy.exe karate.mic karate??.mic karate??.bin karateki.exe
 
 .PHONY: run clean
 
