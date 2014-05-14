@@ -40,7 +40,7 @@ bank.mic: bank.exe bank.mem
 bankier00.mic: bankowcy.exe bankowcy.bin
 	./bankowcy.exe bankowcy.bin bankier%02d.mic
 
-karate.mic: karateki.exe ik6800.bin
+karate.mic: karateki.exe ik6800.bin ik558d.bin
 	./karateki.exe ik6800.bin karate%02d.mic karate.mic
 
 %.dfl: %.bin
