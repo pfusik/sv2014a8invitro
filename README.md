@@ -9,7 +9,7 @@ equipped with 128 KB RAM.
 The invitation presents animations ripped from
 [Das Omen](http://www.pouet.net/prod.php?which=9352),
 [Bank Bang!](http://a8.fandal.cz/detail.php?files_id=1468)
-and [World Karate Championship](http://a8.fandal.cz/detail.php?files_id=4616)
+and [World Karate Championship](http://a8.fandal.cz/detail.php?files_id=4616),
 accompanied with the [Mahna Mahna song](http://www.youtube.com/watch?v=8N_tupPBtWQ)
 sampled to 4 bits at 15556 Hz.
 
@@ -39,4 +39,4 @@ Audio processing (noise reduction) by Lukasz 'X-Ray' Sychowicz.
 Link
 ----
 
-Download, watch youtube, comment and vote at [http://www.pouet.net/prod.php?which=63164](Pouet.net).
+Download, watch YouTube, comment and vote at [pouet.net](http://www.pouet.net/prod.php?which=63164).
