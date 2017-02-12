@@ -1,7 +1,7 @@
 run: sv2014in.xex
 	cygstart $<
 
-sv2014in.xex: loader.asx mahna.smp.0.dfl mahna.smp.1.dfl mahna.smp.2.dfl mahna.smp.3.dfl mahna.smp.4.dfl bank.dfl ipad.dfl karate.dfl
+sv2014in.xex: loader.asx inflate.asx mahna.smp.0.dfl mahna.smp.1.dfl mahna.smp.2.dfl mahna.smp.3.dfl mahna.smp.4.dfl bank.dfl ipad.dfl karate.dfl
 	xasm -q -l -o $@ $<
 
 mahna.smp.0.dfl: mahna.smp
